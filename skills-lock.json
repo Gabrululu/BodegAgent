@@ -6,6 +6,12 @@
       "sourceType": "github",
       "skillPath": "skills/celopedia-skill/SKILL.md",
       "computedHash": "be08f512ef9ba5f2866124b6dd2ea71c982e01ce3644ce6a204568f7fdacf4cd"
+    },
+    "erc-8004": {
+      "source": "bankrbot/openclaw-skills",
+      "sourceType": "github",
+      "skillPath": "erc-8004/SKILL.md",
+      "computedHash": "e99b1ece7eaf4217dc6a96f2dfb23ce48ff38ffc7f89a1d1c0d8c297611dfd79"
     }
   }
 }

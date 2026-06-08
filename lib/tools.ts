@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import { formatUnits } from 'viem'
-import { getAgentAddress, publicClient, cusdAddress, isAddress } from './celo'
-import { getCUSDBalance, getCELOBalance, sendCUSD } from './agent-wallet'
+import { getAgentAddress, publicClient, usdmAddress, isAddress } from './celo'
+import { getUSDmBalance, getCELOBalance, sendCUSD } from './agent-wallet'
 
 const penToCusd = () => parseFloat(process.env.PEN_TO_CUSD_RATE ?? '3.7')
 
@@ -18,11 +18,11 @@ const TRANSFER_EVENT = {
 export const tools = {
   send_cusd: {
     description:
-      'Envía cUSD a una dirección Celo. Siempre confirma monto y destinatario antes de ejecutar. Si el monto supera 50 cUSD, solicita confirmación explícita del usuario.',
+      'Envía USDm (stablecoin de dólar de Celo, antes llamado cUSD) a una dirección Celo. Siempre confirma monto y destinatario antes de ejecutar. Si el monto supera 50 USDm, solicita confirmación explícita del usuario.',
     inputSchema: z.object({
       to: z.string().describe('Dirección Celo del destinatario (0x...)'),
       amount: z.number().positive().describe('Monto a enviar'),
-      currency: z.enum(['PEN', 'cUSD']).describe('Moneda en que está expresado el monto'),
+      currency: z.enum(['PEN', 'USDm']).describe('Moneda en que está expresado el monto (USDm = stablecoin de dólar en Celo)'),
       memo: z.string().describe('Descripción breve del pago (ej: "2 kilos de arroz")'),
       confirmed: z
         .boolean()
@@ -38,7 +38,7 @@ export const tools = {
     }: {
       to: string
       amount: number
-      currency: 'PEN' | 'cUSD'
+      currency: 'PEN' | 'USDm'
       memo: string
       confirmed?: boolean
     }) => {
@@ -47,26 +47,26 @@ export const tools = {
       }
 
       const rate = penToCusd()
-      const amountCUSD = currency === 'PEN' ? amount / rate : amount
+      const amountUSDm = currency === 'PEN' ? amount / rate : amount
       const amountPEN = currency === 'PEN' ? amount : amount * rate
 
-      if (amountCUSD > 50 && !confirmed) {
+      if (amountUSDm > 50 && !confirmed) {
         return {
           requiresConfirmation: true,
-          amountCUSD: amountCUSD.toFixed(2),
+          amountCUSD: amountUSDm.toFixed(2), // field kept for UI compat
           amountPEN: amountPEN.toFixed(2),
           to,
           memo,
-          message: `Este pago es de ${amountCUSD.toFixed(2)} cUSD (S/${amountPEN.toFixed(2)}). Por ser un monto alto, ¿confirmas el envío a ${to.slice(0, 6)}...${to.slice(-4)}?`,
+          message: `Este pago es de ${amountUSDm.toFixed(2)} USDm (S/${amountPEN.toFixed(2)}). Por ser un monto alto, ¿confirmas el envío a ${to.slice(0, 6)}...${to.slice(-4)}?`,
         }
       }
 
       try {
-        const txHash = await sendCUSD(to, amountCUSD)
+        const txHash = await sendCUSD(to, amountUSDm)
         return {
           success: true,
           txHash,
-          amountCUSD: amountCUSD.toFixed(2),
+          amountCUSD: amountUSDm.toFixed(2), // field kept for UI compat
           amountPEN: amountPEN.toFixed(2),
           to,
           memo,
@@ -79,7 +79,7 @@ export const tools = {
   },
 
   check_balance: {
-    description: 'Consulta el saldo de cUSD y CELO de la wallet del agente',
+    description: 'Consulta el saldo de USDm (stablecoin de dólar) y CELO de la wallet del agente',
     inputSchema: z.object({}),
     execute: async () => {
       const address = getAgentAddress()
@@ -88,12 +88,12 @@ export const tools = {
       }
 
       try {
-        const [cusdBal, celoBal] = await Promise.all([
-          getCUSDBalance(address as `0x${string}`),
+        const [usdmBal, celoBal] = await Promise.all([
+          getUSDmBalance(address as `0x${string}`),
           getCELOBalance(address as `0x${string}`),
         ])
         return {
-          cusd: parseFloat(formatUnits(cusdBal, 18)).toFixed(2),
+          cusd: parseFloat(formatUnits(usdmBal, 18)).toFixed(2), // field kept as "cusd" for UI compat
           celo: parseFloat(formatUnits(celoBal, 18)).toFixed(4),
           address,
         }
@@ -172,7 +172,7 @@ export const tools = {
         const fromBlock = currentBlock > 50_000n ? currentBlock - 50_000n : 0n
 
         const received = await publicClient.getLogs({
-          address: cusdAddress,
+          address: usdmAddress,
           event: TRANSFER_EVENT,
           args: {
             to: agentAddress as `0x${string}`,

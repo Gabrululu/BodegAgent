@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180" fill="none">
+  <!-- Celo yellow background -->
+  <rect width="180" height="180" rx="40" fill="#FCFF52"/>
+
+  <!-- Store awning -->
+  <path d="M18 90L90 42L162 90H18Z" fill="#1C1C1C"/>
+
+  <!-- Store facade -->
+  <rect x="22" y="90" width="136" height="74" fill="#1C1C1C"/>
+
+  <!-- Left window -->
+  <rect x="34" y="102" width="36" height="24" rx="8" fill="#FCFF52"/>
+
+  <!-- Right window -->
+  <rect x="110" y="102" width="36" height="24" rx="8" fill="#FCFF52"/>
+
+  <!-- Door -->
+  <rect x="73" y="118" width="34" height="46" rx="8" fill="#FCFF52"/>
+
+  <!-- Celo green dot -->
+  <circle cx="152" cy="28" r="20" fill="#35D07F"/>
+</svg>

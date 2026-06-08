@@ -34,24 +34,26 @@ function MetricCard({
   label,
   value,
   sub,
-  color,
+  accent = false,
 }: {
   label: string
   value: string
   sub?: string
-  color: string
+  accent?: boolean
 }) {
   return (
-    <div className={`rounded-xl p-5 border ${color}`}>
-      <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">{label}</p>
-      <p className="text-2xl font-bold text-gray-900 mt-1">{value}</p>
-      {sub && <p className="text-xs text-gray-400 mt-0.5">{sub}</p>}
+    <div className={`border rounded p-5 ${accent ? 'border-yellow/30 bg-yellow/5' : 'border-line bg-raised'}`}>
+      <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted">{label}</p>
+      <p className={`mt-2 font-mono text-2xl font-bold ${accent ? 'text-yellow' : 'text-text'}`}>
+        {value}
+      </p>
+      {sub && <p className="mt-0.5 font-mono text-[11px] text-muted">{sub}</p>}
     </div>
   )
 }
 
 function exportCSV(transactions: Tx[]) {
-  const headers = ['Bloque', 'De', 'Para', 'cUSD', 'PEN', 'Tipo', 'TxHash']
+  const headers = ['Bloque', 'De', 'Para', 'USDm', 'PEN', 'Tipo', 'TxHash']
   const rows = transactions.map(tx => [
     tx.blockNumber,
     tx.from,
@@ -88,74 +90,91 @@ export default function Dashboard() {
   }, [])
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-[#FCFF52] px-6 py-4 flex items-center justify-between shadow-sm">
-        <div className="flex items-center gap-3">
-          <Link href="/" className="text-2xl">🏪</Link>
-          <div>
-            <h1 className="font-bold text-gray-900 text-lg leading-tight">BodegAgent</h1>
-            <p className="text-xs text-gray-600">Dashboard</p>
+    <div className="min-h-screen bg-ink text-text">
+
+      {/* ── Header ── */}
+      <header className="border-b border-line bg-surface">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
+          <div className="flex items-center gap-3">
+            <Link href="/" aria-label="Inicio">
+              <svg width="24" height="24" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect width="32" height="32" rx="6" fill="#FCFF52"/>
+                <path d="M6 22 L6 14 L9 11 L23 11 L26 14 L26 22 Z" fill="#1C1C1C"/>
+                <rect x="13" y="16" width="6" height="6" fill="#FCFF52"/>
+                <rect x="8" y="14" width="4" height="4" fill="#FCFF52"/>
+                <rect x="20" y="14" width="4" height="4" fill="#FCFF52"/>
+                <circle cx="25" cy="9" r="3" fill="#35D07F"/>
+              </svg>
+            </Link>
+            <div>
+              <span className="text-sm font-bold tracking-tight text-text">BODEGAGENT</span>
+              <span className="ml-2 font-mono text-xs text-muted">/ dashboard</span>
+            </div>
           </div>
+          <Link
+            href="/chat"
+            className="rounded border border-line px-3 py-1.5 text-[11px] font-medium uppercase tracking-wider text-muted transition-colors hover:border-sub hover:text-text"
+          >
+            ← Agente
+          </Link>
         </div>
-        <Link
-          href="/"
-          className="rounded-full border border-gray-700/20 px-4 py-1.5 text-sm font-medium text-gray-800 hover:bg-yellow-300 transition-colors"
-        >
-          ← Chat
-        </Link>
       </header>
 
-      <main className="max-w-5xl mx-auto px-4 py-6 space-y-6">
+      <main className="mx-auto max-w-6xl space-y-8 px-6 py-8">
+
         {loading && (
-          <div className="flex items-center justify-center py-16">
-            <p className="text-gray-400 animate-pulse">Cargando datos de la blockchain...</p>
+          <div className="flex items-center justify-center py-20">
+            <p className="font-mono text-xs uppercase tracking-widest text-muted animate-pulse">
+              Consultando blockchain…
+            </p>
           </div>
         )}
 
         {error && (
-          <div className="rounded-xl bg-red-50 border border-red-200 p-4 text-sm text-red-700">
-            Error: {error}
+          <div className="rounded border border-orange/30 bg-orange/5 p-4">
+            <p className="font-mono text-xs text-orange">Error: {error}</p>
           </div>
         )}
 
         {data && (
           <>
             {/* Metrics */}
-            <section className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <section className="grid grid-cols-1 gap-4 sm:grid-cols-3">
               <MetricCard
-                label="Balance cUSD"
-                value={`${data.balance.cusd} cUSD`}
+                label="Balance USDm"
+                value={`${data.balance.cusd}`}
                 sub={`${data.balance.celo} CELO`}
-                color="border-yellow-200 bg-yellow-50"
+                accent
               />
               <MetricCard
                 label="Txns recientes"
                 value={data.txsToday.toString()}
-                sub="Últimos ~3 días"
-                color="border-blue-200 bg-blue-50"
+                sub="Últimas ~12 horas"
               />
               <MetricCard
                 label="Clientes activos"
                 value={data.debtors.length.toString()}
-                sub="Con pagos recientes"
-                color="border-green-200 bg-green-50"
+                sub="Con pagos recibidos"
               />
             </section>
 
-            {/* Address */}
-            <div className="rounded-xl border border-gray-200 bg-white px-4 py-3 flex items-center justify-between text-sm">
-              <span className="text-gray-500">Wallet del agente</span>
-              <span className="font-mono text-gray-700 text-xs">{data.balance.address}</span>
+            {/* Wallet address */}
+            <div className="border border-line rounded px-4 py-3 flex items-center justify-between">
+              <span className="text-[10px] uppercase tracking-widest text-muted font-mono">
+                Wallet del agente
+              </span>
+              <span className="font-mono text-xs text-sub">{data.balance.address}</span>
             </div>
 
             {/* Historial */}
             <section>
-              <div className="flex items-center justify-between mb-3">
-                <h2 className="font-semibold text-gray-800">Historial de transacciones</h2>
+              <div className="mb-4 flex items-center justify-between border-b border-line pb-4">
+                <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted">
+                  Historial de transacciones
+                </p>
                 <button
                   onClick={() => exportCSV(data.transactions)}
-                  className="rounded-full border border-gray-300 px-3 py-1 text-xs font-medium text-gray-600 hover:bg-gray-100 transition-colors"
+                  className="rounded border border-line px-3 py-1.5 font-mono text-[10px] uppercase tracking-wider text-muted transition-colors hover:border-sub hover:text-text"
                 >
                   Exportar CSV ↓
                 </button>
@@ -166,8 +185,10 @@ export default function Dashboard() {
             {/* Deudores */}
             {data.debtors.length > 0 && (
               <section>
-                <h2 className="font-semibold text-gray-800 mb-3">Clientes con pagos recientes</h2>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <p className="mb-4 border-b border-line pb-4 font-mono text-[11px] uppercase tracking-[0.18em] text-muted">
+                  Clientes con pagos recientes
+                </p>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   {data.debtors.map((debtor, i) => (
                     <DebtCard key={i} debtor={debtor} />
                   ))}
@@ -177,6 +198,7 @@ export default function Dashboard() {
           </>
         )}
       </main>
+
     </div>
   )
 }

@@ -1,20 +1,58 @@
 @import "tailwindcss";
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-celo-yellow: #FCFF52;
+  /* ── Surfaces ── */
+  --color-ink:     #09090C;
+  --color-surface: #111115;
+  --color-raised:  #17171C;
+  --color-overlay: #1F1F26;
+  --color-line:    #27272F;
+  --color-muted:   #65656D;
+  --color-sub:     #96969F;
+  --color-text:    #EDE9DF;
+
+  /* ── Brand ── */
+  --color-yellow:  #FCFF52;
+  --color-green:   #35D07F;
+  --color-orange:  #FF6F3C;
+
+  /* ── Fonts ── */
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+html { color-scheme: dark; }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: #09090C;
+  color: #EDE9DF;
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection { background: #FCFF52; color: #09090C; }
+
+::-webkit-scrollbar { width: 3px; height: 3px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #27272F; border-radius: 2px; }
+
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0; }
+}
+
+.animate-fade-up   { animation: fade-up 0.5s ease both; }
+.animate-fade-up-2 { animation: fade-up 0.5s 0.1s ease both; }
+.animate-fade-up-3 { animation: fade-up 0.5s 0.2s ease both; }
+.animate-fade-up-4 { animation: fade-up 0.5s 0.3s ease both; }
+.animate-blink     { animation: blink 1s step-end infinite; }
+
+/* Dot grid helper */
+.dot-grid {
+  background-image: radial-gradient(circle, #25252C 1px, transparent 1px);
+  background-size: 28px 28px;
 }

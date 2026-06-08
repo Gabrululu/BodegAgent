@@ -3,7 +3,7 @@
 const EXPLORER_BASE =
   process.env.NEXT_PUBLIC_NETWORK === 'mainnet'
     ? 'https://celoscan.io'
-    : 'https://alfajores.celoscan.io'
+    : 'https://celo-sepolia.blockscout.com'
 
 type Tx = {
   txHash: string
@@ -18,70 +18,75 @@ type Tx = {
 export default function TxHistory({ transactions }: { transactions: Tx[] }) {
   if (transactions.length === 0) {
     return (
-      <p className="text-center text-gray-400 py-8 text-sm">
-        No hay transacciones recientes en los últimos 3 días.
-      </p>
+      <div className="border border-line rounded px-6 py-12 text-center">
+        <p className="font-mono text-xs text-muted uppercase tracking-widest">
+          Sin transacciones recientes
+        </p>
+      </div>
     )
   }
 
   return (
-    <div className="overflow-x-auto rounded-xl border border-gray-200">
-      <table className="w-full text-sm">
+    <div className="overflow-x-auto border border-line rounded">
+      <table className="w-full text-xs font-mono">
         <thead>
-          <tr className="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider">
+          <tr className="border-b border-line bg-raised text-[10px] uppercase tracking-widest text-muted">
             <th className="px-4 py-3 text-left">Bloque</th>
-            <th className="px-4 py-3 text-left">De / Para</th>
-            <th className="px-4 py-3 text-right">cUSD</th>
+            <th className="px-4 py-3 text-left">Dirección</th>
+            <th className="px-4 py-3 text-right">USDm</th>
             <th className="px-4 py-3 text-right">PEN</th>
             <th className="px-4 py-3 text-center">Tipo</th>
             <th className="px-4 py-3 text-left">Tx</th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-gray-100">
-          {transactions.map((tx, i) => (
-            <tr key={i} className="hover:bg-gray-50 transition-colors">
-              <td className="px-4 py-3 font-mono text-xs text-gray-500">
-                {tx.blockNumber.slice(-6)}
-              </td>
-              <td className="px-4 py-3 font-mono text-xs">
-                <div className="text-gray-400 text-[10px]">{tx.direction === 'in' ? 'DE' : 'PARA'}</div>
-                <div>{(tx.direction === 'in' ? tx.from : tx.to).slice(0, 8)}...{(tx.direction === 'in' ? tx.from : tx.to).slice(-6)}</div>
-              </td>
-              <td className="px-4 py-3 text-right font-medium">
-                <span className={tx.direction === 'in' ? 'text-green-600' : 'text-red-500'}>
-                  {tx.direction === 'in' ? '+' : '-'}{tx.amountCUSD}
-                </span>
-              </td>
-              <td className="px-4 py-3 text-right text-gray-500">
-                S/{tx.amountPEN}
-              </td>
-              <td className="px-4 py-3 text-center">
-                <span
-                  className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                    tx.direction === 'in'
-                      ? 'bg-green-100 text-green-700'
-                      : 'bg-red-100 text-red-700'
-                  }`}
-                >
-                  {tx.direction === 'in' ? 'Cobro' : 'Pago'}
-                </span>
-              </td>
-              <td className="px-4 py-3">
-                {tx.txHash ? (
-                  <a
-                    href={`${EXPLORER_BASE}/tx/${tx.txHash}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="font-mono text-xs text-blue-500 hover:underline"
+        <tbody className="divide-y divide-line">
+          {transactions.map((tx, i) => {
+            const addr = tx.direction === 'in' ? tx.from : tx.to
+            return (
+              <tr key={i} className="transition-colors hover:bg-raised">
+                <td className="px-4 py-3 text-muted">{tx.blockNumber.slice(-6)}</td>
+                <td className="px-4 py-3">
+                  <div className="text-[9px] uppercase tracking-widest text-muted mb-0.5">
+                    {tx.direction === 'in' ? 'de' : 'para'}
+                  </div>
+                  <div className="text-sub">
+                    {addr.slice(0, 8)}…{addr.slice(-6)}
+                  </div>
+                </td>
+                <td className="px-4 py-3 text-right">
+                  <span className={tx.direction === 'in' ? 'text-green' : 'text-orange'}>
+                    {tx.direction === 'in' ? '+' : '−'}{tx.amountCUSD}
+                  </span>
+                </td>
+                <td className="px-4 py-3 text-right text-muted">S/{tx.amountPEN}</td>
+                <td className="px-4 py-3 text-center">
+                  <span
+                    className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                      tx.direction === 'in'
+                        ? 'bg-green/10 text-green'
+                        : 'bg-orange/10 text-orange'
+                    }`}
                   >
-                    {tx.txHash.slice(0, 8)}... ↗
-                  </a>
-                ) : (
-                  <span className="text-gray-300 text-xs">—</span>
-                )}
-              </td>
-            </tr>
-          ))}
+                    {tx.direction === 'in' ? 'Cobro' : 'Pago'}
+                  </span>
+                </td>
+                <td className="px-4 py-3">
+                  {tx.txHash ? (
+                    <a
+                      href={`${EXPLORER_BASE}/tx/${tx.txHash}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-muted transition-colors hover:text-yellow"
+                    >
+                      {tx.txHash.slice(0, 8)}… ↗
+                    </a>
+                  ) : (
+                    <span className="text-line">—</span>
+                  )}
+                </td>
+              </tr>
+            )
+          })}
         </tbody>
       </table>
     </div>

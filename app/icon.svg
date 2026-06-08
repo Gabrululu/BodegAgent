@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
+  <!-- Celo yellow background with rounded corners -->
+  <rect width="32" height="32" rx="7" fill="#FCFF52"/>
+
+  <!-- Store awning (triangle, pointing up) -->
+  <path d="M3 16L16 7L29 16H3Z" fill="#1C1C1C"/>
+
+  <!-- Store facade / body -->
+  <rect x="4" y="16" width="24" height="13" fill="#1C1C1C"/>
+
+  <!-- Left window cut-out -->
+  <rect x="6" y="18" width="6" height="4" rx="1.5" fill="#FCFF52"/>
+
+  <!-- Right window cut-out -->
+  <rect x="20" y="18" width="6" height="4" rx="1.5" fill="#FCFF52"/>
+
+  <!-- Door cut-out (bottom-flush) -->
+  <rect x="13" y="21" width="6" height="8" rx="1.5" fill="#FCFF52"/>
+
+  <!-- Celo green accent dot — blockchain indicator, top-right -->
+  <circle cx="27" cy="5" r="3.5" fill="#35D07F"/>
+</svg>
