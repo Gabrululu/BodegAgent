@@ -93,8 +93,8 @@ export default function Dashboard() {
     <div className="min-h-screen bg-ink text-text">
 
       {/* ── Header ── */}
-      <header className="border-b border-line bg-surface">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
+      <header className="sticky top-0 z-40 border-b border-line bg-surface/95 backdrop-blur-md">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3.5">
           <div className="flex items-center gap-3">
             <Link href="/" aria-label="Inicio">
               <svg width="24" height="24" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -113,7 +113,7 @@ export default function Dashboard() {
           </div>
           <Link
             href="/chat"
-            className="rounded border border-line px-3 py-1.5 text-[11px] font-medium uppercase tracking-wider text-muted transition-colors hover:border-sub hover:text-text"
+            className="border border-line px-3 py-1.5 text-[11px] font-medium uppercase tracking-wider text-muted transition-colors hover:border-sub hover:text-text"
           >
             ← Agente
           </Link>

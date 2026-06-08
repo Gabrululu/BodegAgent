@@ -219,10 +219,10 @@ export default function Chat() {
 
       {/* ── Header ── */}
       <header className="flex-shrink-0 border-b border-line bg-surface">
-        <div className="flex items-center justify-between px-4 py-3">
+        <div className="flex items-center justify-between px-4 py-3.5">
           <div className="flex items-center gap-3">
             <Link href="/" className="flex items-center gap-2.5 group" aria-label="Volver al inicio">
-              <svg width="24" height="24" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <svg width="24" height="24" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                 <rect width="32" height="32" rx="6" fill="#FCFF52"/>
                 <path d="M6 22 L6 14 L9 11 L23 11 L26 14 L26 22 Z" fill="#1C1C1C"/>
                 <rect x="13" y="16" width="6" height="6" fill="#FCFF52"/>
@@ -253,7 +253,7 @@ export default function Chat() {
             </span>
             <Link
               href="/dashboard"
-              className="rounded border border-line px-2.5 py-1 text-[10px] font-medium uppercase tracking-wider text-muted transition-colors hover:border-sub hover:text-text"
+              className="border border-line px-2.5 py-1 text-[10px] font-medium uppercase tracking-wider text-muted transition-colors hover:border-sub hover:text-text"
             >
               Dashboard
             </Link>

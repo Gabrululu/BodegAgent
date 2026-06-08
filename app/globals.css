@@ -45,14 +45,24 @@ body {
   50%       { opacity: 0; }
 }
 
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+
 .animate-fade-up   { animation: fade-up 0.5s ease both; }
 .animate-fade-up-2 { animation: fade-up 0.5s 0.1s ease both; }
 .animate-fade-up-3 { animation: fade-up 0.5s 0.2s ease both; }
 .animate-fade-up-4 { animation: fade-up 0.5s 0.3s ease both; }
 .animate-blink     { animation: blink 1s step-end infinite; }
+.animate-marquee   { animation: marquee 28s linear infinite; }
 
 /* Dot grid helper */
 .dot-grid {
-  background-image: radial-gradient(circle, #25252C 1px, transparent 1px);
+  background-image: radial-gradient(circle, #1E1E26 1px, transparent 1px);
   background-size: 28px 28px;
 }
+
+/* Display-size heading */
+.text-display { font-size: clamp(3rem, 9vw, 6rem); }
+.text-display-sm { font-size: clamp(2rem, 5.5vw, 3.5rem); }
