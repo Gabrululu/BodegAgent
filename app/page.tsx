@@ -16,34 +16,53 @@ const FEATURES = [
     title: 'Facturas con deeplink',
     body: 'Genera facturas con totales en PEN y USDm, con link de pago incluido. Compártelo por WhatsApp o Telegram.',
   },
+  {
+    n: '04',
+    title: 'Remesas sin intermediarios',
+    body: 'Recibe pagos directamente desde EE.UU. o España en USDm. Sin intermediarios, sin comisiones del 7%. El agente convierte a soles en el acto.',
+  },
 ]
 
 const STEPS = [
   {
     n: '01',
-    title: 'Escríbele en español',
-    example: '"Cobra S/15 al Chino por dos kilos de arroz"',
+    label: 'El familiar paga desde el exterior',
+    example: '"Tengo 50 USDC en Los Ángeles, ¿cómo mando a la bodega?"',
   },
   {
     n: '02',
-    title: 'El agente convierte y confirma',
-    example: '"Enviaré 4.05 USDm a 0x4f3e… ¿Confirmas?"',
+    label: 'El agente busca el mejor rate',
+    example: 'Compara Mento vs Uniswap V3 · Elige la ruta con más USDm',
   },
   {
     n: '03',
-    title: 'Queda grabado en Celo',
-    example: 'Hash inmutable · Gas en USDm (CIP-64) · Visible en Blockscout',
+    label: 'La bodega recibe en segundos',
+    example: 'USDm llega on-chain · Gas en USDm (CIP-64) · Sin esperas',
   },
+  {
+    n: '04',
+    label: 'El fiado queda saldado',
+    example: 'El agente registra el pago · Genera recibo · Visible en Blockscout',
+  },
+]
+
+const CORRIDOR = [
+  { flag: '🇺🇸', city: 'Los Ángeles', currency: 'USDT / USDC' },
+  { flag: '🇪🇸', city: 'Madrid',      currency: 'USDC / EURm' },
+  { flag: '🇨🇱', city: 'Santiago',    currency: 'USDC / USDm' },
+  { flag: '🇵🇪', city: 'Lima',        currency: 'USDm → PEN' },
 ]
 
 const TICKER_ITEMS = [
   'CELO SEPOLIA',
   'USDm STABLECOIN',
-  'PAGOS ON-CHAIN',
+  'REMESAS CROSS-BORDER',
+  'FX RATE EN VIVO',
+  'MINIPAY WALLET',
+  'DEX ROUTING',
   'ERC-8004 AGENT IDENTITY',
   'CIP-64 FEE ABSTRACTION',
   'VERCEL AI SDK v6',
-  'VIEM v2',
 ]
 
 /* ── Chat preview component (decorative) ── */
@@ -57,7 +76,7 @@ function ChatPreview() {
         </div>
         <div>
           <p className="text-xs font-semibold text-text leading-none">BodegAgent</p>
-          <p className="mt-0.5 font-mono text-[9px] text-muted">Celo Sepolia</p>
+          <p className="mt-0.5 font-mono text-[9px] text-muted">Celo · MiniPay</p>
         </div>
         <div className="ml-auto flex items-center gap-1.5">
           <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-green" />
@@ -70,19 +89,19 @@ function ChatPreview() {
         {/* User */}
         <div className="flex justify-end">
           <div className="max-w-[80%] rounded-2xl rounded-br-sm bg-yellow px-3 py-2 text-xs font-medium text-ink">
-            Cobra S/15 al Chino
+            Mamá mandó 50 USDC desde LA
           </div>
         </div>
         {/* Agent */}
         <div className="flex justify-start">
           <div className="max-w-[85%] rounded-2xl rounded-bl-sm bg-raised px-3 py-2 text-xs text-sub">
-            Enviaré 4.05 USDm a 0x4f3e… ¿Confirmas?
+            Mento da 50.03 USDm · Uniswap 49.97 · Te conviene Mento.
           </div>
         </div>
         {/* User */}
         <div className="flex justify-end">
           <div className="rounded-2xl rounded-br-sm bg-yellow px-3 py-2 text-xs font-medium text-ink">
-            Sí ✓
+            Dale, convierte ✓
           </div>
         </div>
 
@@ -90,20 +109,20 @@ function ChatPreview() {
         <div className="rounded border border-green/25 bg-ink px-3 py-2.5 font-mono">
           <div className="mb-2 flex items-center gap-1.5">
             <span className="h-1.5 w-1.5 rounded-full bg-green" />
-            <span className="text-[9px] uppercase tracking-wider text-green">Pago confirmado</span>
+            <span className="text-[9px] uppercase tracking-wider text-green">Remesa recibida</span>
           </div>
           <div className="space-y-1 text-[10px]">
             <div className="flex justify-between">
-              <span className="text-muted">monto</span>
-              <span className="text-text">4.05 USDm</span>
+              <span className="text-muted">recibido</span>
+              <span className="text-text">50.03 USDm</span>
             </div>
             <div className="flex justify-between">
               <span className="text-muted">en soles</span>
-              <span className="text-text">S/15.00</span>
+              <span className="text-text">S/187.61</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted">hash</span>
-              <span className="text-sub">0x7f8c…b3a1 ↗</span>
+              <span className="text-muted">fiado de María</span>
+              <span className="text-green">saldado ✓</span>
             </div>
           </div>
         </div>
@@ -133,7 +152,6 @@ export default function Home() {
       {/* ── Nav ── */}
       <header className="sticky top-0 z-50 border-b border-line bg-ink/95 backdrop-blur-md">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3.5">
-          {/* Logo */}
           <Link href="/" className="flex items-center gap-2.5">
             <svg width="26" height="26" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
               <rect width="32" height="32" rx="6" fill="#FCFF52"/>
@@ -146,7 +164,6 @@ export default function Home() {
             <span className="text-sm font-bold tracking-tight text-text">BODEGAGENT</span>
           </Link>
 
-          {/* Right: nav + CTA */}
           <div className="flex items-center gap-4">
             <Link
               href="/dashboard"
@@ -169,7 +186,6 @@ export default function Home() {
         <div className="mx-auto max-w-6xl px-6 py-20 md:py-32">
           <div className="grid grid-cols-1 items-center gap-12 lg:grid-cols-[1fr_auto]">
 
-            {/* Left column */}
             <div>
               {/* Badges */}
               <div className="animate-fade-up mb-8 flex flex-wrap items-center gap-2">
@@ -177,7 +193,7 @@ export default function Home() {
                   Onchain Agents Hackathon
                 </span>
                 <span className="rounded-full border border-green/30 bg-green/8 px-3 py-1 font-mono text-[10px] uppercase tracking-widest text-green">
-                  Celo Sepolia
+                  Celo · MiniPay
                 </span>
               </div>
 
@@ -189,9 +205,10 @@ export default function Home() {
               </h1>
 
               {/* Subtitle */}
-              <p className="animate-fade-up-3 mt-8 max-w-sm text-base leading-relaxed text-sub">
-                El agente de pagos que habla como tú, registra el fiado
-                y firma cada cobro en la blockchain de Celo.
+              <p className="animate-fade-up-3 mt-8 max-w-md text-base leading-relaxed text-sub">
+                El agente de pagos para bodegueros peruanos. Habla en español,
+                registra el fiado y recibe remesas desde el exterior — todo
+                firmado en la blockchain de Celo.
               </p>
 
               {/* CTAs */}
@@ -211,10 +228,41 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Right column: chat preview */}
             <div className="hidden lg:block">
               <ChatPreview />
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Corredor de remesas ── */}
+      <section className="border-b border-line bg-surface">
+        <div className="mx-auto max-w-6xl px-6">
+          <div className="border-b border-line py-8">
+            <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted">
+              El corredor · diáspora → Perú
+            </p>
+          </div>
+          <div className="grid grid-cols-2 divide-x divide-y divide-line sm:grid-cols-4 sm:divide-y-0">
+            {CORRIDOR.map((c, i) => (
+              <div key={i} className="px-6 py-8">
+                <p className="mb-3 text-2xl">{c.flag}</p>
+                <p className="text-sm font-semibold text-text">{c.city}</p>
+                <p className="mt-1 font-mono text-xs text-muted">{c.currency}</p>
+              </div>
+            ))}
+          </div>
+          <div className="border-t border-line py-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <p className="text-sm text-muted max-w-lg">
+              Más de <span className="text-text font-semibold">3.5 millones</span> de peruanos en el exterior envían ~$4B al año.
+              Los servicios tradicionales cobran 5–8%. BodegAgent lo hace por el costo del gas — centavos en USDm.
+            </p>
+            <Link
+              href="/chat"
+              className="flex-shrink-0 border border-line px-5 py-2 text-xs font-medium text-sub transition-colors hover:border-yellow hover:text-yellow"
+            >
+              Calcular ahorro →
+            </Link>
           </div>
         </div>
       </section>
@@ -227,9 +275,9 @@ export default function Home() {
               Características
             </p>
           </div>
-          <div className="grid grid-cols-1 divide-y divide-line md:grid-cols-3 md:divide-x md:divide-y-0">
+          <div className="grid grid-cols-1 divide-y divide-line sm:grid-cols-2 sm:divide-y-0 lg:grid-cols-4 lg:divide-x">
             {FEATURES.map(f => (
-              <div key={f.n} className="py-10 first:pl-0 last:pr-0 md:px-8">
+              <div key={f.n} className="py-10 sm:px-6 first:pl-0 last:pr-0">
                 <p className="mb-6 font-mono text-4xl font-bold text-overlay">{f.n}</p>
                 <h3 className="mb-3 text-base font-semibold text-text">{f.title}</h3>
                 <p className="text-sm leading-relaxed text-muted">{f.body}</p>
@@ -244,17 +292,17 @@ export default function Home() {
         <div className="mx-auto max-w-6xl px-6">
           <div className="border-b border-line py-8">
             <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted">
-              Cómo funciona
+              Cómo funciona · corredor cross-border
             </p>
           </div>
-          <div className="grid grid-cols-1 divide-y divide-line md:grid-cols-3 md:divide-x md:divide-y-0">
+          <div className="grid grid-cols-1 divide-y divide-line sm:grid-cols-2 sm:divide-y-0 lg:grid-cols-4 lg:divide-x">
             {STEPS.map(s => (
-              <div key={s.n} className="py-10 first:pl-0 last:pr-0 md:px-8">
+              <div key={s.n} className="py-10 sm:px-6 first:pl-0 last:pr-0">
                 <div className="mb-5 flex items-center gap-3">
                   <span className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-yellow font-mono text-[11px] font-bold text-ink">
                     {s.n}
                   </span>
-                  <h3 className="text-sm font-semibold text-text">{s.title}</h3>
+                  <h3 className="text-sm font-semibold text-text">{s.label}</h3>
                 </div>
                 <p className="font-mono text-xs italic leading-relaxed text-muted">{s.example}</p>
               </div>
@@ -271,10 +319,10 @@ export default function Home() {
           </p>
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
             {[
-              { label: 'Red activa', value: 'Celo Sepolia' },
-              { label: 'Chain ID', value: '11142220' },
-              { label: 'USDm', value: '0xEF4d55D6…45bC80' },
-              { label: 'ERC-8004', value: '0x8004A818…4BD9e' },
+              { label: 'Red activa',   value: 'Celo Sepolia'    },
+              { label: 'Chain ID',     value: '11142220'        },
+              { label: 'USDm',         value: '0xEF4d55D6…45bC80' },
+              { label: 'ERC-8004',     value: '0x8004A818…4BD9e' },
             ].map(item => (
               <div key={item.label} className="border border-line px-4 py-3">
                 <p className="mb-1 text-[10px] uppercase tracking-widest text-muted">{item.label}</p>
@@ -290,10 +338,11 @@ export default function Home() {
         <div className="mx-auto max-w-6xl px-6 py-28 text-center">
           <h2 className="text-display-sm mx-auto mb-5 max-w-xl font-bold leading-tight text-text">
             Tu bodega,<br />
-            <span className="text-yellow">en la blockchain.</span>
+            <span className="text-yellow">conectada al mundo.</span>
           </h2>
-          <p className="mx-auto mb-10 max-w-xs text-sm leading-relaxed text-muted">
-            Cero intermediarios. Gas en USDm. Todo en español, todo on-chain.
+          <p className="mx-auto mb-10 max-w-sm text-sm leading-relaxed text-muted">
+            Recibe remesas, registra fiado y cobra en USDm — todo en español,
+            todo on-chain, gas en USDm.
           </p>
           <Link
             href="/chat"
@@ -308,7 +357,6 @@ export default function Home() {
       <footer className="border-t border-line bg-surface">
         <div className="mx-auto max-w-6xl px-6 py-8">
           <div className="flex flex-col items-start justify-between gap-6 md:flex-row md:items-center">
-            {/* Logo + tagline */}
             <div className="flex items-center gap-3">
               <svg width="22" height="22" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                 <rect width="32" height="32" rx="6" fill="#FCFF52"/>
@@ -324,7 +372,6 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Links */}
             <nav className="flex gap-6 font-mono text-xs text-muted">
               <Link href="/chat" className="transition-colors hover:text-text">Agente</Link>
               <Link href="/dashboard" className="transition-colors hover:text-text">Dashboard</Link>

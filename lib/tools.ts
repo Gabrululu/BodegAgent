@@ -2,8 +2,8 @@ import { z } from 'zod'
 import { formatUnits } from 'viem'
 import { getAgentAddress, publicClient, usdmAddress, isAddress } from './celo'
 import { getUSDmBalance, getCELOBalance, sendCUSD } from './agent-wallet'
-
-const penToCusd = () => parseFloat(process.env.PEN_TO_CUSD_RATE ?? '3.7')
+import { getLivePenRate, getFxRateInfo } from './fx'
+import { getBestDexRate } from './dex-rates'
 
 const TRANSFER_EVENT = {
   type: 'event' as const,
@@ -46,7 +46,7 @@ export const tools = {
         return { error: 'La dirección de destino no es válida. Pide al cliente su dirección Celo correcta.' }
       }
 
-      const rate = penToCusd()
+      const rate = await getLivePenRate()
       const amountUSDm = currency === 'PEN' ? amount / rate : amount
       const amountPEN = currency === 'PEN' ? amount : amount * rate
 
@@ -130,7 +130,7 @@ export const tools = {
       items: { name: string; qty: number; priceSOLES: number }[]
       dueDate: string
     }) => {
-      const rate = penToCusd()
+      const rate = await getLivePenRate()
       const totalPEN = items.reduce((sum, i) => sum + i.qty * i.priceSOLES, 0)
       const totalCUSD = totalPEN / rate
       const invoiceId = Date.now().toString()
@@ -193,12 +193,13 @@ export const tools = {
           byCustomer[args.from].count++
         }
 
+        const rate = await getLivePenRate()
         const debts = Object.entries(byCustomer).map(([addr, data]) => ({
           customer: addr,
           shortAddress: `${addr.slice(0, 6)}...${addr.slice(-4)}`,
           totalReceivedCUSD: parseFloat(formatUnits(data.total, 18)).toFixed(2),
           totalReceivedPEN: (
-            parseFloat(formatUnits(data.total, 18)) * penToCusd()
+            parseFloat(formatUnits(data.total, 18)) * rate
           ).toFixed(2),
           txCount: data.count,
         }))
@@ -208,6 +209,27 @@ export const tools = {
         return { debts: [], error: 'Error al leer la blockchain. Intenta de nuevo.' }
       }
     },
+  },
+
+  get_fx_rate: {
+    description:
+      'Obtiene la tasa de cambio USD/PEN en vivo desde el mercado. Úsalo antes de cualquier conversión soles↔USDm para dar la tasa exacta al cliente.',
+    inputSchema: z.object({}),
+    execute: async () => getFxRateInfo(),
+  },
+
+  compare_rates: {
+    description:
+      'Compara el tipo de cambio USDC→USDm entre Mento/mercado Celo (precio agregado DefiLlama) y Uniswap V3 (cotización on-chain), e indica cuál da más USDm por el mismo USDC. Útil cuando un cliente paga en USDC y el bodeguero quiere saber el mejor lugar para convertir.',
+    inputSchema: z.object({
+      amountUSDC: z
+        .number()
+        .positive()
+        .default(100)
+        .describe('Monto en USDC a cotizar (por defecto 100)'),
+    }),
+    execute: async ({ amountUSDC }: { amountUSDC: number }) =>
+      getBestDexRate(amountUSDC),
   },
 
   remind_debtor: {
@@ -227,7 +249,7 @@ export const tools = {
       amountPEN: number
       daysSince: number
     }) => {
-      const amountCUSD = (amountPEN / penToCusd()).toFixed(2)
+      const amountCUSD = (amountPEN / (await getLivePenRate())).toFixed(2)
       const contexto =
         daysSince > 14
           ? 'ya va un buen tiempo'

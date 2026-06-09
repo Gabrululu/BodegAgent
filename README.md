@@ -1,68 +1,97 @@
-# BodegAgent 🏪
+# BodegAgent
 
-**Conversational payment agent in USDm for Peruvian bodegueros, deployed on Celo.**
+**Agente de pagos conversacional en USDm para bodegueros peruanos, desplegado en Celo.**
 
-BodegAgent lets a corner store owner collect payments in USDm (Celo's dollar stablecoin), track debt ("fiado"), generate invoices, and send payment reminders — all through a natural Spanish conversation, without needing to understand crypto.
+BodegAgent permite al dueño de una bodega cobrar en USDm, registrar fiado, generar facturas y recibir remesas desde el exterior — todo en español, sin entender crypto. Conecta el corredor de remesas **diáspora → Perú** con la blockchain de Celo a través de una conversación natural.
 
-Built for the **[Onchain Agents Hackathon](https://celo.org)** on Celo.
+Construido para el **Onchain Agents Hackathon de Celo**.
 
 ---
 
-## What it does
+## El problema que resuelve
 
-| Capability | Command (natural language) |
+Perú recibe ~$4B/año en remesas. El 90% pasa por servicios tradicionales de transferencia que cobran 5–8% de comisión con 1–3 días de espera. Los bodegueros son puntos de cobro clave en sus barrios — muchas familias fían en la bodega anticipando la remesa mensual.
+
+BodegAgent cierra ese loop:
+
+```
+Familiar en EE.UU./España          Bodeguero en Lima
+   tiene USDT / USDC                      │
+          │                               │
+          │  compare_rates ──────────── mejor DEX
+          │  (Mento vs Uniswap V3)        │
+          │                               │
+          └──────── USDm on-chain ───────▶│ recibe en segundos
+                    CIP-64 / gas en USDm  │
+                                          ├── get_fx_rate → convierte a S/
+                                          ├── salda el fiado
+                                          └── genera recibo on-chain
+```
+
+---
+
+## Qué puede hacer
+
+| Capacidad | Ejemplo en chat |
 |---|---|
-| Collect a payment in USDm | *"Cobra S/15 al Chino por 2 kilos de arroz"* |
-| Check agent wallet balance | *"Ver mi saldo"* |
-| Generate an invoice | *"Factura para Rosa: 3 gaseosas a S/3 cada una, vence el viernes"* |
-| Review recent payments received | *"Ver deudas pendientes"* |
-| Generate a debt reminder message | *"Recuérdale a Pedro que debe S/40"* |
-
-The agent converts Peruvian soles (PEN) to USDm automatically using a configurable exchange rate, confirms every transaction before signing, and enforces a safety limit of 10 transactions per hour.
+| Cobrar en USDm | *"Cobra S/15 al Chino por 2 kilos de arroz"* |
+| Ver saldo de la wallet | *"Ver mi saldo"* |
+| Generar factura con deeplink | *"Factura para Rosa: 3 gaseosas a S/3, vence el viernes"* |
+| Revisar pagos recibidos | *"Ver deudas pendientes"* |
+| Recordatorio de deuda | *"Recuérdale a Pedro que debe S/40"* |
+| Tasa de cambio en vivo | *"¿Cuánto es S/200 en USDm ahora?"* |
+| Comparar DEXs | *"¿En qué DEX me dan más USDm por 50 USDC?"* |
+| Recibir remesa | *"Recibir pago del extranjero"* |
 
 ---
 
-## Tech stack
+## Stack
 
-| Layer | Technology |
+| Capa | Tecnología |
 |---|---|
 | Framework | Next.js 16 — App Router |
-| AI | Vercel AI SDK v6 + Anthropic `claude-sonnet-4-20250514` |
-| Blockchain | viem v2 — Celo Mainnet + **Celo Sepolia** (active testnet) |
-| Stablecoin | USDm (Mento Dollar, legacy: cUSD) — 18 decimals |
-| Gas abstraction | CIP-64 `feeCurrency` — agent pays gas in USDm, no CELO needed |
-| Agent identity | ERC-8004 Identity Registry on Celo |
+| AI | Vercel AI SDK v6 + `claude-sonnet-4-20250514` |
+| Blockchain | viem v2 — Celo Mainnet / **Celo Sepolia** |
+| Stablecoin | USDm (Mento Dollar) — 18 decimals |
+| Gas | CIP-64 `feeCurrency` — gas en USDm, sin CELO |
+| DEX quotes | Uniswap V3 QuoterV2 on-chain (mainnet) |
+| FX agregado | DefiLlama `coins.llama.fi` |
+| FX fiat | `open.er-api.com` — USD/PEN en vivo |
+| Wallet | MiniPay · MetaMask · Embedded (viem `generatePrivateKey`) |
+| Agent identity | ERC-8004 Identity Registry |
 | Styling | Tailwind CSS v4 |
-| Language | TypeScript (strict) |
 | Deploy | Vercel |
 
 ---
 
-## Project structure
+## Estructura del proyecto
 
 ```
 app/
-  page.tsx                  ← Chat UI (renders <Chat />)
-  dashboard/page.tsx        ← Transaction history + debtors dashboard
+  page.tsx                    ← Landing page (narrativa de remesas)
+  chat/page.tsx               ← Página del chat
+  dashboard/page.tsx          ← Historial de transacciones + deudores
   api/
-    chat/route.ts           ← Vercel AI SDK streamText endpoint
-    transactions/route.ts   ← Reads recent USDm transfers from Celo
+    chat/route.ts             ← Vercel AI SDK streamText endpoint
+    transactions/route.ts     ← Lee transfers de USDm desde Celo
 lib/
-  celo.ts                   ← viem clients, chain config, ERC-8004 addresses
-  agent-wallet.ts           ← sendCUSD (CIP-64), ERC-8004 registration, getLogs
-  tools.ts                  ← AI tools: send_cusd, check_balance, create_invoice, …
+  celo.ts                     ← viem clients, config de red, ERC-8004
+  agent-wallet.ts             ← sendCUSD (CIP-64), ERC-8004, getLogs
+  tools.ts                    ← 7 herramientas del agente
+  fx.ts                       ← Tasa USD/PEN en vivo (open.er-api.com, cache 1h)
+  dex-rates.ts                ← Comparación Mento vs Uniswap V3
+  wallet-context.tsx          ← React context: MiniPay / injected / embedded
 components/
-  Chat.tsx                  ← Full chat UI with TxCard and quick replies
-  TxHistory.tsx             ← Transaction history table
-  DebtCard.tsx              ← Debtor summary card
-.env.local.example          ← Required environment variables
+  Chat.tsx                    ← UI completa del chat
+  TxHistory.tsx               ← Tabla de historial de transacciones
+  DebtCard.tsx                ← Tarjeta de deudor
 ```
 
 ---
 
-## Getting started
+## Instalación
 
-### 1. Clone and install
+### 1. Clonar e instalar
 
 ```bash
 git clone https://github.com/your-username/BodegAgent.git
@@ -70,124 +99,186 @@ cd BodegAgent
 pnpm install
 ```
 
-### 2. Configure environment variables
+### 2. Variables de entorno
 
 ```bash
 cp .env.local.example .env.local
 ```
 
-Edit `.env.local`:
-
 ```env
+# API de Anthropic (Claude)
 ANTHROPIC_API_KEY=sk-ant-...
 
-# Hex private key WITHOUT the 0x prefix — server-side only, never exposed to the client
+# Clave privada del agente — solo server-side, nunca exponer al cliente
 AGENT_PRIVATE_KEY=abc123...
 
-# Network: "sepolia" (active testnet) | "mainnet"
+# Red: "sepolia" (testnet activa) | "mainnet"
 NEXT_PUBLIC_NETWORK=sepolia
 
-# Public address of the agent wallet (shown in the UI header)
+# Dirección pública de la wallet del agente (mostrada en el header del chat)
 NEXT_PUBLIC_AGENT_ADDRESS=0x...
 
-# Conversion rate: 1 USDm ≈ 3.7 Peruvian soles — adjust as needed
+# Fallback de tasa PEN/USDm si open.er-api.com no está disponible
+# El agente obtiene la tasa en vivo automáticamente — este valor es el respaldo
 PEN_TO_CUSD_RATE=3.7
 ```
 
-> **Security:** `AGENT_PRIVATE_KEY` is a real private key. Use a fresh wallet with testnet funds only. Never commit `.env.local`.
+> **Seguridad:** `AGENT_PRIVATE_KEY` es una clave real. Usa una wallet nueva con solo fondos de testnet. Nunca hagas commit de `.env.local`.
 
-### 3. Fund the agent wallet
+### 3. Fondear la wallet del agente (testnet)
 
-Get testnet USDm and CELO from the Celo Sepolia faucet:
+- Faucet Celo Sepolia: https://faucet.celo.org/celo-sepolia
 
-- https://faucet.celo.org/celo-sepolia
-
-### 4. Run locally
+### 4. Levantar en desarrollo
 
 ```bash
 pnpm dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) — the chat interface loads immediately.
-
-The dashboard is at [http://localhost:3000/dashboard](http://localhost:3000/dashboard).
+- Chat: http://localhost:3000/chat
+- Dashboard: http://localhost:3000/dashboard
 
 ---
 
-## AI tools
+## Herramientas del agente
 
-The agent has five tools powered by Vercel AI SDK v6:
+El agente tiene 7 tools construidas con Vercel AI SDK v6:
 
-| Tool | Description |
+| Tool | Qué hace |
 |---|---|
-| `send_cusd` | Transfers USDm via ERC-20. Converts PEN → USDm. Requires confirmation for amounts > 50 USDm. Rate-limited to 10 tx/hour. Uses CIP-64 fee abstraction. |
-| `check_balance` | Returns the agent wallet's USDm and CELO balances. |
-| `create_invoice` | Generates an invoice with line items in PEN + USDm total and a payment deeplink. |
-| `check_pending_debts` | Reads recent Transfer events (~12 hours) from Celo to find incoming payments. |
-| `remind_debtor` | Generates a friendly Spanish reminder message for the bodeguero to copy and send. |
+| `send_cusd` | Transfiere USDm vía ERC-20. Convierte PEN→USDm con tasa en vivo. Pide confirmación para montos > 50 USDm. Rate-limit: 10 tx/hora. Usa CIP-64. |
+| `check_balance` | Devuelve el saldo USDm y CELO de la wallet del agente. |
+| `create_invoice` | Genera factura con líneas de productos en PEN + total en USDm + deeplink de pago. |
+| `check_pending_debts` | Lee eventos Transfer (~12h) de Celo para encontrar pagos recibidos. |
+| `remind_debtor` | Genera un recordatorio en español peruano para enviar por WhatsApp. |
+| `get_fx_rate` | Tasa USD/PEN en vivo desde `open.er-api.com`. Cache de 1 hora. Fallback a variable de entorno. |
+| `compare_rates` | Compara la cotización USDC→USDm entre DefiLlama (Mento + mercado Celo) y Uniswap V3 on-chain. Indica cuál da más USDm y la diferencia en basis points. |
 
 ---
 
-## Celo-specific details
+## Wallet — opciones de conexión
 
-### Networks supported
+Al abrir el chat, el usuario elige cómo conectarse:
 
-| Network | Chain ID | RPC | Explorer | Default |
-|---|---|---|---|---|
-| **Celo Sepolia** (testnet) | 11142220 | `https://forno.celo-sepolia.celo-testnet.org` | https://celo-sepolia.blockscout.com | ✓ |
-| Celo Mainnet | 42220 | `https://forno.celo.org` | https://celoscan.io | |
-
-### USDm contract addresses
-
-| Network | Address | Verified |
+| Opción | Cómo funciona | Cuándo usar |
 |---|---|---|
-| **Celo Sepolia** | `0xEF4d55D6dE8e8d73232827Cd1e9b2F2dBb45bC80` | via Registry on-chain |
-| Mainnet | `0x765DE816845861e75A25fCA122bb6898B8B1282a` | official docs |
+| **MiniPay** | Se detecta via `window.ethereum.isMiniPay`. Auto-conecta al abrir la app. | Usuarios en Africa/LatAm con Opera Browser |
+| **MetaMask / injected** | `eth_requestAccounts` sobre `window.ethereum`. Aparece solo si hay wallet instalada. | Usuarios con wallet de navegador |
+| **Wallet temporal** | `generatePrivateKey()` + `privateKeyToAccount()` de viem, persiste en `localStorage`. | Demo, pruebas rápidas |
 
-> USDm (Mento Dollar) is the rebrand of cUSD. The token address doubles as the `feeCurrency` adapter for CIP-64 gas abstraction — no separate adapter needed.
+> La wallet temporal es solo para demo. No deposites fondos reales — la clave privada vive en el navegador.
 
-### CIP-64 fee abstraction
+Si el usuario está dentro de MiniPay, se muestra:
+- Un banner "Recarga USDm" con deeplink a `https://link.minipay.xyz/add_cash?tokens=USDm`
+- Un quick reply "Tasa MiniPay" que llama al método custom `miniPay_getExchangeRate`
+- Menú con link directo al saldo en MiniPay y a Blockscout
 
-All outgoing transactions include `feeCurrency: usdmAddress`. This means the agent wallet pays gas in USDm and does not need a CELO balance to operate.
+La dirección conectada se inyecta automáticamente en el primer mensaje al agente para que pueda referenciarla.
 
-### ERC-8004 agent identity
+---
 
-`lib/agent-wallet.ts` exports two helpers for on-chain agent registration:
+## FX en vivo y routing entre DEXs
+
+### Tasa PEN/USDm (`lib/fx.ts`)
+
+```typescript
+import { getLivePenRate } from '@/lib/fx'
+const rate = await getLivePenRate() // USD → PEN desde open.er-api.com
+```
+
+- Fuente: `https://open.er-api.com/v6/latest/USD` (gratuito, sin API key)
+- Cache en memoria de 1 hora — Next.js `next: { revalidate: 3600 }`
+- Fallback a `PEN_TO_CUSD_RATE` del `.env` si la API no responde
+- Todos los tools (`send_cusd`, `create_invoice`, `check_pending_debts`, `remind_debtor`) usan esta tasa
+
+### Comparación de DEXs (`lib/dex-rates.ts`)
+
+```typescript
+import { getBestDexRate } from '@/lib/dex-rates'
+const result = await getBestDexRate(100) // Cotiza 100 USDC → USDm
+```
+
+Dos fuentes en paralelo:
+
+**DefiLlama** (`coins.llama.fi`) — precio agregado:
+- Agrega precios de Mento, Uniswap, Curve y todos los pools de Celo
+- Disponible en mainnet y Sepolia
+- `USDC/USDm rate = usdc_price_usd / usdm_price_usd`
+
+**Uniswap V3 QuoterV2** — cotización on-chain:
+- `quoteExactInputSingle` con 100 USDC en fee tiers 500 (0.05%) y 3000 (0.3%)
+- Solo mainnet. En Sepolia retorna `available: false`
+- Cotización exacta incluyendo spread real del pool
+
+El resultado incluye cuál da más USDm y la diferencia en basis points.
+
+---
+
+## Detalles específicos de Celo
+
+### Redes soportadas
+
+| Red | Chain ID | Explorer | Default |
+|---|---|---|---|
+| **Celo Sepolia** | 11142220 | https://celo-sepolia.blockscout.com | ✓ |
+| Celo Mainnet | 42220 | https://celoscan.io | |
+
+### Contratos USDm
+
+| Red | Dirección |
+|---|---|
+| **Celo Sepolia** | `0xEF4d55D6dE8e8d73232827Cd1e9b2F2dBb45bC80` |
+| Mainnet | `0x765DE816845861e75A25fCA122bb6898B8B1282a` |
+
+> USDm (Mento Dollar) es el rebrand de cUSD. La dirección del token sirve también como adaptador `feeCurrency` para CIP-64 — no se necesita un adaptador separado.
+
+### CIP-64 — gas en USDm
+
+Todas las transacciones incluyen `feeCurrency: usdmAddress`. La wallet del agente paga el gas en USDm y no necesita saldo CELO para operar. Esto es crítico para compatibilidad con MiniPay.
+
+```typescript
+await walletClient.writeContract({
+  address: usdmAddress,
+  abi: ERC20_ABI,
+  functionName: 'transfer',
+  args: [to, amount],
+  feeCurrency: feeCurrencyAddress, // CIP-64
+})
+```
+
+### ERC-8004 — identidad del agente
+
+`lib/agent-wallet.ts` incluye helpers para registrar el agente on-chain:
 
 ```typescript
 import { registerAgentERC8004, buildAgentMetadata } from '@/lib/agent-wallet'
 
-// 1. Build spec-compliant metadata (EIP-8004 #registration-v1)
 const metadata = buildAgentMetadata(agentAddress, 'https://bodegagent.vercel.app')
-
-// 2. Pin metadata to IPFS, then register
 const txHash = await registerAgentERC8004('ipfs://QmYourCID...')
 ```
 
-The metadata shape follows the current ERC-8004 spec (v1): `type` is the spec URI, `services` (not `endpoints`), and each entry uses `endpoint` (not `url`). The `agentURI` must be content-addressed (`ipfs://` or `data:`) to pass validator checks on [8004scan](https://8004scan.io).
+El `agentURI` debe ser content-addressed (`ipfs://` o `data:`) para pasar los checks del validador ERC-8004.
 
-Identity Registry addresses:
+**Identity Registry:**
 - Mainnet: `0x8004A169FB4a3325136EB29fA0ceB6D2e539a432`
 - Celo Sepolia: `0x8004A818BFB912233c491871b3d84c89A494BD9e`
 
-### `eth_getLogs` limit
+### Límite de `eth_getLogs`
 
-Celo's public RPC rejects log queries spanning more than 50,000 blocks. At ~1 second per block that is roughly **14 hours** of history per request. The dashboard queries the last 43,200 blocks (~12 hours) to stay safely under the limit. For deeper history, use the [Blockscout REST API](https://celo.blockscout.com/api-docs) — no API key needed.
+El RPC público de Celo rechaza queries de logs de más de 50.000 bloques (~14 horas). Los tools usan ventanas de 43.200 bloques (~12 horas). Para historial más profundo usar la [Blockscout REST API](https://celo.blockscout.com/api-docs) — sin API key.
 
 ---
 
-## Deploy to Vercel
+## Deploy en Vercel
 
 ```bash
 vercel deploy
 ```
 
-Set the same environment variables from `.env.local` in your Vercel project settings under **Settings → Environment Variables**.
-
-> Do not set `AGENT_PRIVATE_KEY` as a `NEXT_PUBLIC_` variable — it must remain server-side only.
+Configura las variables de entorno en **Settings → Environment Variables**. `AGENT_PRIVATE_KEY` nunca debe tener prefijo `NEXT_PUBLIC_`.
 
 ---
 
-## License
+## Licencia
 
 MIT

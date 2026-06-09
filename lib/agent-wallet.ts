@@ -158,6 +158,9 @@ export async function getRecentTransfers(limit = 20) {
       .sort((a, b) => Number((b.blockNumber ?? 0n) - (a.blockNumber ?? 0n)))
       .slice(0, limit)
 
+    // Use env-var rate as a stable reference for historical display.
+    // Live rate would cause the same tx to show different PEN amounts over time.
+    const penRate = parseFloat(process.env.PEN_TO_CUSD_RATE ?? '3.7')
     return all.map(log => {
       const args = log.args as { from: string; to: string; value: bigint }
       const amountUSDm = parseFloat(formatUnits(args.value, 18))
@@ -168,7 +171,7 @@ export async function getRecentTransfers(limit = 20) {
         from: args.from,
         to: args.to,
         amountCUSD: amountUSDm.toFixed(4), // field kept as amountCUSD for API compat
-        amountPEN: (amountUSDm * parseFloat(process.env.PEN_TO_CUSD_RATE ?? '3.7')).toFixed(2),
+        amountPEN: (amountUSDm * penRate).toFixed(2),
         direction,
       }
     })
