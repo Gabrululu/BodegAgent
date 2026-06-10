@@ -53,6 +53,19 @@ type KapsoWebhook = {
   phone_number_id?: string
 }
 
+// Meta webhook verification (GET) — required by Kapso / WhatsApp Cloud API
+export async function GET(req: NextRequest) {
+  const { searchParams } = new URL(req.url)
+  const mode = searchParams.get('hub.mode')
+  const token = searchParams.get('hub.verify_token')
+  const challenge = searchParams.get('hub.challenge')
+  const verifyToken = process.env.KAPSO_VERIFY_TOKEN ?? 'bodegagent'
+  if (mode === 'subscribe' && token === verifyToken) {
+    return new Response(challenge ?? '', { status: 200 })
+  }
+  return new Response('Forbidden', { status: 403 })
+}
+
 export async function POST(req: NextRequest) {
   const body: KapsoWebhook = await req.json().catch(() => ({}))
 
