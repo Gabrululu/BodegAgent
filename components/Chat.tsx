@@ -3,8 +3,10 @@
 import { useChat } from '@ai-sdk/react'
 import { DefaultChatTransport, lastAssistantMessageIsCompleteWithToolCalls } from 'ai'
 import Link from 'next/link'
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useWallet } from '@/lib/wallet-context'
+import { useFiado } from '@/lib/use-fiado'
+import QuickActions from './QuickActions'
 
 const NETWORK = process.env.NEXT_PUBLIC_NETWORK ?? 'sepolia'
 const AGENT_ADDRESS = process.env.NEXT_PUBLIC_AGENT_ADDRESS ?? ''
@@ -33,6 +35,7 @@ type ToolPart = {
 type TextPart = { type: 'text'; text: string }
 type Part = TextPart | ToolPart
 type Message = { id: string; role: string; parts?: Part[] }
+type Contact = { name: string; address: string }
 
 /* ── Wallet option button ── */
 function WalletOption({
@@ -441,6 +444,63 @@ function RateComparisonCard({ output }: { output: Record<string, unknown> }) {
   )
 }
 
+/* ── FiadoCard ── */
+function FiadoCard({ output }: { output: Record<string, unknown> }) {
+  const isSettle = !!(output as { settled?: boolean }).settled
+  const color = isSettle ? 'green' : 'yellow'
+  return (
+    <div className={`mt-3 border border-${color}/25 bg-ink rounded p-3 font-mono text-xs`}>
+      <div className="flex items-center gap-2 mb-2">
+        <span className={`h-1.5 w-1.5 rounded-full bg-${color}`} />
+        <span className={`text-${color} font-semibold tracking-wide uppercase text-[10px]`}>
+          {isSettle ? 'Fiado saldado ✓' : 'Fiado anotado'}
+        </span>
+      </div>
+      <div className="space-y-1 text-sub">
+        <div className="flex justify-between">
+          <span className="text-muted">cliente</span>
+          <span className="text-text">{output.customerName as string}</span>
+        </div>
+        <div className="flex justify-between">
+          <span className="text-muted">monto</span>
+          <span className="text-text">S/{(output.amountPEN as number)?.toFixed(2)}</span>
+        </div>
+        {!isSettle && output.description ? (
+          <div className="flex justify-between">
+            <span className="text-muted">detalle</span>
+            <span className="text-text truncate max-w-[140px]">{output.description as string}</span>
+          </div>
+        ) : null}
+      </div>
+    </div>
+  )
+}
+
+/* ── SaveContactCard ── */
+function SaveContactCard({ output }: { output: Record<string, unknown> }) {
+  const addr = output.address as string
+  return (
+    <div className="mt-3 border border-green/25 bg-ink rounded p-3 font-mono text-xs">
+      <div className="flex items-center gap-2 mb-2">
+        <span className="h-1.5 w-1.5 rounded-full bg-green" />
+        <span className="text-green font-semibold tracking-wide uppercase text-[10px]">
+          Contacto guardado
+        </span>
+      </div>
+      <div className="space-y-1 text-sub">
+        <div className="flex justify-between">
+          <span className="text-muted">nombre</span>
+          <span className="text-text">{output.name as string}</span>
+        </div>
+        <div className="flex justify-between">
+          <span className="text-muted">dirección</span>
+          <span className="text-text">{addr?.slice(0, 8)}…{addr?.slice(-6)}</span>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 /* ── Message bubble ── */
 function MessageBubble({ message }: { message: Message }) {
   const isUser = message.role === 'user'
@@ -497,6 +557,18 @@ function MessageBubble({ message }: { message: Message }) {
 
           if (tp.type === 'tool-compare_rates' && tp.state === 'output-available') {
             return <RateComparisonCard key={i} output={tp.output ?? {}} />
+          }
+
+          if (tp.type === 'tool-save_contact' && tp.state === 'output-available' && tp.output?.saved) {
+            return <SaveContactCard key={i} output={tp.output} />
+          }
+
+          if (
+            (tp.type === 'tool-register_fiado' || tp.type === 'tool-settle_fiado') &&
+            tp.state === 'output-available' &&
+            (tp.output?.registered || tp.output?.settled)
+          ) {
+            return <FiadoCard key={i} output={tp.output} />
           }
 
           if (
@@ -559,6 +631,77 @@ export default function Chat() {
 
   const isLoading = status === 'submitted' || status === 'streaming'
 
+  // ── Fiado (libreta de crédito) ──
+  const { pending: pendingFiado, addFiado, settleFiado } = useFiado()
+
+  const processedFiadoRef = useRef<Set<string>>(new Set())
+  useEffect(() => {
+    messages.forEach(msg => {
+      if (msg.role !== 'assistant') return
+      ;(msg.parts ?? []).forEach(part => {
+        const tp = part as ToolPart
+        if (tp.state !== 'output-available') return
+        const key = `${msg.id}:${tp.type}`
+        if (processedFiadoRef.current.has(key)) return
+        if (tp.type === 'tool-register_fiado' && tp.output?.registered) {
+          processedFiadoRef.current.add(key)
+          const o = tp.output as { customerName: string; customerAddress?: string; amountPEN: number; description: string }
+          addFiado({ customerName: o.customerName, customerAddress: o.customerAddress, amountPEN: o.amountPEN, description: o.description })
+        }
+        if (tp.type === 'tool-settle_fiado' && tp.output?.settled) {
+          processedFiadoRef.current.add(key)
+          const o = tp.output as { customerName: string }
+          const match = pendingFiado.find(f => f.customerName.toLowerCase() === o.customerName.toLowerCase())
+          if (match) settleFiado(match.id)
+        }
+      })
+    })
+  }, [messages, addFiado, settleFiado, pendingFiado])
+
+  // ── Agenda de contactos (localStorage) ──
+  const [contacts, setContacts] = useState<Contact[]>(() => {
+    if (typeof window === 'undefined') return []
+    try { return JSON.parse(localStorage.getItem('bodeg:contacts') ?? '[]') } catch { return [] }
+  })
+
+  const addContact = useCallback((name: string, addr: string) => {
+    setContacts(prev => {
+      const updated = [
+        ...prev.filter(c => c.name.toLowerCase() !== name.toLowerCase()),
+        { name, address: addr },
+      ]
+      localStorage.setItem('bodeg:contacts', JSON.stringify(updated))
+      return updated
+    })
+  }, [])
+
+  const removeContact = useCallback((name: string) => {
+    setContacts(prev => {
+      const updated = prev.filter(c => c.name.toLowerCase() !== name.toLowerCase())
+      localStorage.setItem('bodeg:contacts', JSON.stringify(updated))
+      return updated
+    })
+  }, [])
+
+  // Detectar tool-save_contact en los mensajes y persistir
+  const processedSavesRef = useRef<Set<string>>(new Set())
+  useEffect(() => {
+    messages.forEach(msg => {
+      if (msg.role !== 'assistant') return
+      ;(msg.parts ?? []).forEach(part => {
+        const tp = part as ToolPart
+        if (tp.type === 'tool-save_contact' && tp.state === 'output-available') {
+          const out = tp.output as { saved?: boolean; name?: string; address?: string }
+          if (!out?.saved || !out.name || !out.address) return
+          const key = `${msg.id}:${out.name}`
+          if (processedSavesRef.current.has(key)) return
+          processedSavesRef.current.add(key)
+          addContact(out.name, out.address)
+        }
+      })
+    })
+  }, [messages, addContact])
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
@@ -572,13 +715,16 @@ export default function Chat() {
 
   function handleSend(text: string) {
     if (!text.trim() || isLoading) return
-    // Prepend wallet address context on first message
     const isFirst = messages.length === 0
-    const prefix =
+    const walletPrefix =
       isFirst && address
         ? `[Mi dirección Celo: ${address}${walletType === 'minipay' ? ' (MiniPay)' : walletType === 'embedded' ? ' (wallet temporal)' : ''}] `
         : ''
-    sendMessage({ text: prefix + text.trim() })
+    const agendaPrefix =
+      isFirst && contacts.length > 0
+        ? `[Agenda: ${contacts.map(c => `${c.name}=${c.address}`).join(', ')}] `
+        : ''
+    sendMessage({ text: walletPrefix + agendaPrefix + text.trim() })
     setInput('')
     inputRef.current?.focus()
   }
@@ -640,7 +786,7 @@ export default function Chat() {
             <WalletBadge />
 
             <span
-              className={`rounded-full px-2.5 py-0.5 font-mono text-[10px] font-medium ${
+              className={`hidden sm:inline rounded-full px-2.5 py-0.5 font-mono text-[10px] font-medium ${
                 NETWORK === 'mainnet'
                   ? 'bg-green/15 text-green'
                   : 'bg-yellow/15 text-yellow'
@@ -650,7 +796,7 @@ export default function Chat() {
             </span>
             <Link
               href="/dashboard"
-              className="border border-line px-2.5 py-1 text-[10px] font-medium uppercase tracking-wider text-muted transition-colors hover:border-sub hover:text-text"
+              className="hidden sm:block border border-line px-2.5 py-1 text-[10px] font-medium uppercase tracking-wider text-muted transition-colors hover:border-sub hover:text-text"
             >
               Dashboard
             </Link>
@@ -738,6 +884,37 @@ export default function Chat() {
                   </div>
                 </div>
 
+                {/* Agenda de contactos */}
+                {contacts.length > 0 && (
+                  <div className="w-full max-w-sm">
+                    <p className="mb-2 font-mono text-[9px] uppercase tracking-[0.18em] text-muted text-center">
+                      Agenda · {contacts.length} contacto{contacts.length !== 1 ? 's' : ''}
+                    </p>
+                    <div className="flex flex-wrap justify-center gap-1.5">
+                      {contacts.map(c => (
+                        <div key={c.name} className="group flex items-center gap-1 rounded-full border border-line bg-raised pr-1 pl-3 py-1">
+                          <button
+                            onClick={() => handleSend(`Cobrarle a ${c.name}`)}
+                            className="flex items-center gap-1.5 text-xs text-sub hover:text-yellow transition-colors"
+                          >
+                            <span>{c.name}</span>
+                            <span className="font-mono text-[9px] text-muted">
+                              {c.address.slice(0, 4)}…{c.address.slice(-3)}
+                            </span>
+                          </button>
+                          <button
+                            onClick={() => removeContact(c.name)}
+                            className="ml-1 flex h-4 w-4 items-center justify-center rounded-full text-[10px] text-muted opacity-0 transition-all hover:bg-line hover:text-text group-hover:opacity-100"
+                            aria-label={`Eliminar ${c.name}`}
+                          >
+                            ×
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
               </div>
             )}
 
@@ -762,6 +939,15 @@ export default function Chat() {
 
             <div ref={messagesEndRef} />
           </main>
+
+          {/* Quick actions */}
+          <QuickActions
+            contacts={contacts}
+            pendingFiado={pendingFiado}
+            onSend={handleSend}
+            isLoading={isLoading}
+            onSettleFiado={settleFiado}
+          />
 
           {/* Input */}
           <footer className="flex-shrink-0 border-t border-line bg-surface px-4 pb-4 pt-3">

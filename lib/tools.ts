@@ -232,6 +232,65 @@ export const tools = {
       getBestDexRate(amountUSDC),
   },
 
+  register_fiado: {
+    description:
+      'Registra en la libreta de fiado que un cliente tomó mercadería a crédito. Úsalo cuando el bodeguero diga que alguien fió, pidió prestado o se llevó algo sin pagar.',
+    inputSchema: z.object({
+      customerName: z.string().describe('Nombre o apodo del cliente'),
+      customerAddress: z.string().optional().describe('Dirección Celo del cliente (opcional)'),
+      amountPEN: z.number().positive().describe('Monto en soles'),
+      description: z.string().describe('Qué se filó (ej: "2kg arroz, 1 gaseosa")'),
+    }),
+    execute: async ({
+      customerName, customerAddress, amountPEN, description,
+    }: { customerName: string; customerAddress?: string; amountPEN: number; description: string }) => {
+      const rate = await getLivePenRate()
+      return {
+        registered: true,
+        customerName,
+        customerAddress: customerAddress ?? null,
+        amountPEN,
+        amountUSDm: (amountPEN / rate).toFixed(2),
+        description,
+        message: `Anotado: ${customerName} debe S/${amountPEN.toFixed(2)} por ${description}.`,
+      }
+    },
+  },
+
+  settle_fiado: {
+    description: 'Marca un fiado como saldado cuando el cliente paga.',
+    inputSchema: z.object({
+      customerName: z.string().describe('Nombre del cliente que salda la deuda'),
+      amountPEN: z.number().positive().describe('Monto saldado en soles'),
+    }),
+    execute: async ({ customerName, amountPEN }: { customerName: string; amountPEN: number }) => ({
+      settled: true,
+      customerName,
+      amountPEN,
+      message: `Saldado ✓: ${customerName} pagó S/${amountPEN.toFixed(2)}.`,
+    }),
+  },
+
+  save_contact: {
+    description:
+      'Guarda un contacto (nombre → dirección Celo) en la agenda del bodeguero para que no tenga que dictar la dirección de nuevo en el futuro. Úsalo siempre que el usuario proporcione el nombre y la dirección de alguien.',
+    inputSchema: z.object({
+      name: z.string().describe('Nombre o apodo del contacto (ej: "el Chino", "Rosa", "señora del mercado")'),
+      address: z.string().describe('Dirección Celo del contacto (0x...)'),
+    }),
+    execute: async ({ name, address }: { name: string; address: string }) => {
+      if (!isAddress(address)) {
+        return { saved: false, error: 'Dirección inválida — no se guardó el contacto.' }
+      }
+      return {
+        saved: true,
+        name,
+        address,
+        message: `Guardé a ${name} (${address.slice(0, 6)}…${address.slice(-4)}) en tu agenda.`,
+      }
+    },
+  },
+
   remind_debtor: {
     description:
       'Genera un mensaje de recordatorio amable en español para un cliente que debe dinero',

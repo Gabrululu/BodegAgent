@@ -275,7 +275,7 @@ export default function Home() {
               Características
             </p>
           </div>
-          <div className="grid grid-cols-1 divide-y divide-line sm:grid-cols-2 sm:divide-y-0 lg:grid-cols-4 lg:divide-x">
+          <div className="grid grid-cols-1 divide-y divide-line sm:grid-cols-2 lg:grid-cols-4 lg:divide-y-0 lg:divide-x">
             {FEATURES.map(f => (
               <div key={f.n} className="py-10 sm:px-6 first:pl-0 last:pr-0">
                 <p className="mb-6 font-mono text-4xl font-bold text-overlay">{f.n}</p>
@@ -295,7 +295,7 @@ export default function Home() {
               Cómo funciona · corredor cross-border
             </p>
           </div>
-          <div className="grid grid-cols-1 divide-y divide-line sm:grid-cols-2 sm:divide-y-0 lg:grid-cols-4 lg:divide-x">
+          <div className="grid grid-cols-1 divide-y divide-line sm:grid-cols-2 lg:grid-cols-4 lg:divide-y-0 lg:divide-x">
             {STEPS.map(s => (
               <div key={s.n} className="py-10 sm:px-6 first:pl-0 last:pr-0">
                 <div className="mb-5 flex items-center gap-3">
@@ -372,7 +372,7 @@ export default function Home() {
               </div>
             </div>
 
-            <nav className="flex gap-6 font-mono text-xs text-muted">
+            <nav className="flex flex-wrap gap-x-6 gap-y-2 font-mono text-xs text-muted">
               <Link href="/chat" className="transition-colors hover:text-text">Agente</Link>
               <Link href="/dashboard" className="transition-colors hover:text-text">Dashboard</Link>
               <a

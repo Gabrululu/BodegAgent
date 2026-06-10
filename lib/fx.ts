@@ -23,8 +23,8 @@ export async function getLivePenRate(): Promise<number> {
     fxCache = { usdToPen, fetchedAt: Date.now() }
     return usdToPen
   } catch {
-    const fallback = parseFloat(process.env.PEN_TO_CUSD_RATE ?? '3.7')
-    return Number.isFinite(fallback) && fallback > 0 ? fallback : 3.7
+    const fallback = parseFloat(process.env.PEN_TO_CUSD_RATE ?? '3.43')
+    return Number.isFinite(fallback) && fallback > 0 ? fallback : 3.43
   }
 }
 
@@ -48,7 +48,7 @@ export async function getFxRateInfo() {
       live: true,
     }
   } catch {
-    const fallback = parseFloat(process.env.PEN_TO_CUSD_RATE ?? '3.7')
+    const fallback = parseFloat(process.env.PEN_TO_CUSD_RATE ?? '3.43')
     return {
       usdToPen: fallback.toFixed(4),
       penToUsdm: (1 / fallback).toFixed(6),

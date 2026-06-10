@@ -1,97 +1,104 @@
 # BodegAgent
 
-**Agente de pagos conversacional en USDm para bodegueros peruanos, desplegado en Celo.**
+**Conversational USDm payment agent for Peruvian corner store owners, deployed on Celo.**
 
-BodegAgent permite al dueño de una bodega cobrar en USDm, registrar fiado, generar facturas y recibir remesas desde el exterior — todo en español, sin entender crypto. Conecta el corredor de remesas **diáspora → Perú** con la blockchain de Celo a través de una conversación natural.
+BodegAgent lets a bodega owner collect payments in USDm, track credit tabs, generate invoices, and receive remittances from abroad — all in Spanish, no crypto knowledge required. It connects the **diaspora → Peru** remittance corridor to the Celo blockchain through natural conversation and quick-action shortcuts.
 
-Construido para el **Onchain Agents Hackathon de Celo**.
-
----
-
-## El problema que resuelve
-
-Perú recibe ~$4B/año en remesas. El 90% pasa por servicios tradicionales de transferencia que cobran 5–8% de comisión con 1–3 días de espera. Los bodegueros son puntos de cobro clave en sus barrios — muchas familias fían en la bodega anticipando la remesa mensual.
-
-BodegAgent cierra ese loop:
-
-```
-Familiar en EE.UU./España          Bodeguero en Lima
-   tiene USDT / USDC                      │
-          │                               │
-          │  compare_rates ──────────── mejor DEX
-          │  (Mento vs Uniswap V3)        │
-          │                               │
-          └──────── USDm on-chain ───────▶│ recibe en segundos
-                    CIP-64 / gas en USDm  │
-                                          ├── get_fx_rate → convierte a S/
-                                          ├── salda el fiado
-                                          └── genera recibo on-chain
-```
+Built for the **Celo Onchain Agents Hackathon**.
 
 ---
 
-## Qué puede hacer
+## The problem it solves
 
-| Capacidad | Ejemplo en chat |
+Peru receives ~$4B/year in remittances. 90% flows through traditional transfer services that charge 5–8% in fees with 1–3 day wait times. Bodega owners are key cash collection points in their neighborhoods — many families run a credit tab at the local store while waiting for the monthly remittance.
+
+BodegAgent closes that loop:
+
+```
+Family member in USA/Spain          Bodega owner in Lima
+   has USDT / USDC                         │
+          │                                │
+          │  compare_rates ─────────── best DEX
+          │  (Mento vs Uniswap V3)         │
+          │                                │
+          └──────── USDm on-chain ────────▶│ receives in seconds
+                    CIP-64 / gas in USDm   │
+                                           ├── get_fx_rate → converts to PEN
+                                           ├── settles the credit tab
+                                           └── generates on-chain receipt
+```
+
+---
+
+## What it can do
+
+| Capability | Chat example |
 |---|---|
-| Cobrar en USDm | *"Cobra S/15 al Chino por 2 kilos de arroz"* |
-| Ver saldo de la wallet | *"Ver mi saldo"* |
-| Generar factura con deeplink | *"Factura para Rosa: 3 gaseosas a S/3, vence el viernes"* |
-| Revisar pagos recibidos | *"Ver deudas pendientes"* |
-| Recordatorio de deuda | *"Recuérdale a Pedro que debe S/40"* |
-| Tasa de cambio en vivo | *"¿Cuánto es S/200 en USDm ahora?"* |
-| Comparar DEXs | *"¿En qué DEX me dan más USDm por 50 USDC?"* |
-| Recibir remesa | *"Recibir pago del extranjero"* |
+| Collect payment in USDm | *"Charge Chino S/15 for 2 kilos of rice"* |
+| Check wallet balance | *"Show my balance"* |
+| Generate invoice with deeplink | *"Invoice for Rosa: 3 sodas at S/3, due Friday"* |
+| Log a credit tab (fiado) | *"Note that Lucho took S/20 of groceries on credit"* |
+| Settle a credit tab | *"Lucho just paid his tab"* |
+| Debt reminder | *"Remind Pedro he owes S/40"* |
+| Live exchange rate | *"How much is S/200 in USDm right now?"* |
+| Compare DEXs | *"Which DEX gives me more USDm for 50 USDC?"* |
+| Receive remittance | *"Receive payment from abroad"* |
+| Save a contact | *"Save Rosa's address 0x..."* |
 
 ---
 
 ## Stack
 
-| Capa | Tecnología |
+| Layer | Technology |
 |---|---|
 | Framework | Next.js 16 — App Router |
-| AI | Vercel AI SDK v6 + `claude-sonnet-4-20250514` |
+| AI | Vercel AI SDK v6 + Claude Sonnet 4 / Haiku 4.5 (cost routing) |
 | Blockchain | viem v2 — Celo Mainnet / **Celo Sepolia** |
 | Stablecoin | USDm (Mento Dollar) — 18 decimals |
-| Gas | CIP-64 `feeCurrency` — gas en USDm, sin CELO |
+| Gas | CIP-64 `feeCurrency` — gas in USDm, no CELO needed |
 | DEX quotes | Uniswap V3 QuoterV2 on-chain (mainnet) |
-| FX agregado | DefiLlama `coins.llama.fi` |
-| FX fiat | `open.er-api.com` — USD/PEN en vivo |
+| FX aggregator | DefiLlama `coins.llama.fi` |
+| Fiat FX | `open.er-api.com` — live USD/PEN rate |
 | Wallet | MiniPay · MetaMask · Embedded (viem `generatePrivateKey`) |
+| WhatsApp | Kapso API (`api.kapso.ai`) |
 | Agent identity | ERC-8004 Identity Registry |
 | Styling | Tailwind CSS v4 |
 | Deploy | Vercel |
 
 ---
 
-## Estructura del proyecto
+## Project structure
 
 ```
 app/
-  page.tsx                    ← Landing page (narrativa de remesas)
-  chat/page.tsx               ← Página del chat
-  dashboard/page.tsx          ← Historial de transacciones + deudores
+  page.tsx                    ← Landing page (remittance narrative)
+  chat/page.tsx               ← Chat page with hybrid quick-action UI
+  dashboard/page.tsx          ← Transaction history + debtors
+  pagar/[address]/page.tsx    ← Payment portal for family abroad
   api/
-    chat/route.ts             ← Vercel AI SDK streamText endpoint
-    transactions/route.ts     ← Lee transfers de USDm desde Celo
+    chat/route.ts             ← Vercel AI SDK streamText endpoint (model routing)
+    transactions/route.ts     ← Reads USDm transfers from Celo
+    whatsapp/route.ts         ← Kapso WhatsApp webhook handler
 lib/
-  celo.ts                     ← viem clients, config de red, ERC-8004
+  celo.ts                     ← viem clients, network config, ERC-8004
   agent-wallet.ts             ← sendCUSD (CIP-64), ERC-8004, getLogs
-  tools.ts                    ← 7 herramientas del agente
-  fx.ts                       ← Tasa USD/PEN en vivo (open.er-api.com, cache 1h)
-  dex-rates.ts                ← Comparación Mento vs Uniswap V3
+  tools.ts                    ← 9 agent tools
+  fx.ts                       ← Live USD/PEN rate (open.er-api.com, 1h cache)
+  dex-rates.ts                ← Mento vs Uniswap V3 rate comparison
+  use-fiado.ts                ← Credit tab state hook (localStorage)
   wallet-context.tsx          ← React context: MiniPay / injected / embedded
 components/
-  Chat.tsx                    ← UI completa del chat
-  TxHistory.tsx               ← Tabla de historial de transacciones
-  DebtCard.tsx                ← Tarjeta de deudor
+  Chat.tsx                    ← Full chat UI + contacts agenda
+  QuickActions.tsx            ← Quick-action bar: Cobrar, Saldo, Fiado sheets
+  TxHistory.tsx               ← Transaction history table
+  DebtCard.tsx                ← Debtor card
 ```
 
 ---
 
-## Instalación
+## Setup
 
-### 1. Clonar e instalar
+### 1. Clone and install
 
 ```bash
 git clone https://github.com/your-username/BodegAgent.git
@@ -99,37 +106,45 @@ cd BodegAgent
 pnpm install
 ```
 
-### 2. Variables de entorno
+### 2. Environment variables
 
 ```bash
 cp .env.local.example .env.local
 ```
 
 ```env
-# API de Anthropic (Claude)
+# Anthropic API key (Claude)
 ANTHROPIC_API_KEY=sk-ant-...
 
-# Clave privada del agente — solo server-side, nunca exponer al cliente
+# Agent private key — server-side only, never expose to the client
 AGENT_PRIVATE_KEY=abc123...
 
-# Red: "sepolia" (testnet activa) | "mainnet"
+# Network: "sepolia" (active testnet) | "mainnet"
 NEXT_PUBLIC_NETWORK=sepolia
 
-# Dirección pública de la wallet del agente (mostrada en el header del chat)
+# Agent wallet public address (shown in chat header)
 NEXT_PUBLIC_AGENT_ADDRESS=0x...
 
-# Fallback de tasa PEN/USDm si open.er-api.com no está disponible
-# El agente obtiene la tasa en vivo automáticamente — este valor es el respaldo
-PEN_TO_CUSD_RATE=3.7
+# Platform wallet — receives the 0.5% service fee on remittances
+# Leave empty to disable fee collection
+NEXT_PUBLIC_PLATFORM_ADDRESS=0x...
+
+# WhatsApp via Kapso (https://kapso.com)
+# Webhook URL to set in Kapso dashboard: https://your-domain.vercel.app/api/whatsapp
+KAPSO_API_KEY=
+KAPSO_PHONE_NUMBER_ID=
+
+# PEN/USDm rate fallback if open.er-api.com is unavailable
+PEN_TO_CUSD_RATE=3.43
 ```
 
-> **Seguridad:** `AGENT_PRIVATE_KEY` es una clave real. Usa una wallet nueva con solo fondos de testnet. Nunca hagas commit de `.env.local`.
+> **Security:** `AGENT_PRIVATE_KEY` is a real private key. Use a fresh wallet with testnet funds only. Never commit `.env.local`.
 
-### 3. Fondear la wallet del agente (testnet)
+### 3. Fund the agent wallet (testnet)
 
-- Faucet Celo Sepolia: https://faucet.celo.org/celo-sepolia
+- Celo Sepolia faucet: https://faucet.celo.org/celo-sepolia
 
-### 4. Levantar en desarrollo
+### 4. Start development server
 
 ```bash
 pnpm dev
@@ -137,104 +152,225 @@ pnpm dev
 
 - Chat: http://localhost:3000/chat
 - Dashboard: http://localhost:3000/dashboard
+- Payment portal: http://localhost:3000/pagar/0x... *(any Celo address)*
 
 ---
 
-## Herramientas del agente
+## Agent tools
 
-El agente tiene 7 tools construidas con Vercel AI SDK v6:
+The agent has 9 tools built with Vercel AI SDK v6:
 
-| Tool | Qué hace |
+| Tool | What it does |
 |---|---|
-| `send_cusd` | Transfiere USDm vía ERC-20. Convierte PEN→USDm con tasa en vivo. Pide confirmación para montos > 50 USDm. Rate-limit: 10 tx/hora. Usa CIP-64. |
-| `check_balance` | Devuelve el saldo USDm y CELO de la wallet del agente. |
-| `create_invoice` | Genera factura con líneas de productos en PEN + total en USDm + deeplink de pago. |
-| `check_pending_debts` | Lee eventos Transfer (~12h) de Celo para encontrar pagos recibidos. |
-| `remind_debtor` | Genera un recordatorio en español peruano para enviar por WhatsApp. |
-| `get_fx_rate` | Tasa USD/PEN en vivo desde `open.er-api.com`. Cache de 1 hora. Fallback a variable de entorno. |
-| `compare_rates` | Compara la cotización USDC→USDm entre DefiLlama (Mento + mercado Celo) y Uniswap V3 on-chain. Indica cuál da más USDm y la diferencia en basis points. |
+| `send_cusd` | Transfers USDm via ERC-20. Converts PEN→USDm using the live rate. Confirms amounts > 50 USDm. Rate-limit: 10 tx/hour. CIP-64. |
+| `check_balance` | Returns the agent wallet's USDm and CELO balance. |
+| `create_invoice` | Generates an invoice with product lines in PEN + USDm total + payment deeplink. |
+| `check_pending_debts` | Reads Transfer events (~12h) from Celo to find received payments. |
+| `remind_debtor` | Generates a debt reminder in Peruvian Spanish ready to share via WhatsApp. |
+| `get_fx_rate` | Live USD/PEN rate from `open.er-api.com`. 1-hour cache. Env fallback. |
+| `compare_rates` | Compares USDC→USDm quotes: DefiLlama (Mento + Celo) vs Uniswap V3 on-chain. Reports best route and difference in basis points. |
+| `register_fiado` | Logs a credit tab entry: customer name, amount in PEN, description. Persisted client-side in localStorage. |
+| `settle_fiado` | Marks a credit tab as settled when the customer pays. |
+
+Two additional client-side tools are also available:
+
+| Tool | What it does |
+|---|---|
+| `save_contact` | Saves a name → Celo address mapping to the bodega's contact agenda (localStorage). Resolved automatically in future sessions. |
 
 ---
 
-## Wallet — opciones de conexión
+## Hybrid UI — quick actions + agent
 
-Al abrir el chat, el usuario elige cómo conectarse:
+For routine daily operations, a bottom quick-action bar avoids the latency of the conversational interface:
 
-| Opción | Cómo funciona | Cuándo usar |
+| Button | Behavior |
+|---|---|
+| **💸 Cobrar** | Opens a numpad sheet with contact picker, memo field, and live fee preview. Submits directly to the agent. |
+| **💰 Saldo** | Sends "Ver mi saldo" instantly — no typing required. |
+| **📒 Fiado** | Opens the credit tab list. Shows pending tabs sorted by age, with "Remind" and "Settled ✓" actions per entry. Badge shows pending count. |
+
+The conversational agent remains available for complex flows: remittances, multi-item invoices, DEX comparisons, and error recovery.
+
+---
+
+## Contacts agenda (persistent memory)
+
+The agent has no memory between sessions by default. BodegAgent solves this with a client-side contacts agenda stored in `localStorage`:
+
+- When the agent learns a contact's name and address (via `save_contact`), it is saved automatically.
+- At the start of every new session, the full agenda is injected into the first message: `[Agenda: Chino=0x..., Rosa=0x...]`.
+- The agent reads this context and resolves names to addresses without asking.
+
+```
+Session 1:
+  User: "charge S/20 to Rosa, her address is 0xabc..."
+  Agent: executes send_cusd + calls save_contact("Rosa", "0xabc...")
+  → "Rosa" stored in localStorage
+
+Session 2 (next day):
+  [Agenda: Rosa=0xabc...] injected into first message
+  User: "charge S/15 to Rosa"
+  Agent: uses 0xabc... directly — no prompt needed
+```
+
+---
+
+## Credit tab ledger (fiado)
+
+The fiado (credit tab) system persists across sessions in `localStorage` under the key `bodeg:fiado`:
+
+```typescript
+type FiadoEntry = {
+  id: string
+  customerName: string
+  customerAddress?: string
+  amountPEN: number
+  description: string
+  createdAt: string
+  settled: boolean
+  settledAt?: string
+  txHash?: string
+}
+```
+
+- Created via the `register_fiado` tool (conversational) or logged manually.
+- Settled via `settle_fiado` tool or the "Saldado ✓" button in the Fiado sheet.
+- The chat detects `register_fiado` and `settle_fiado` tool results and syncs local state automatically.
+- Tabs older than 7 days are highlighted in orange as overdue.
+
+---
+
+## Payment portal — `/pagar/[address]`
+
+A standalone page for the **family member abroad** to send USDm directly to the bodega without using the agent chat.
+
+### Flow
+
+1. Bodega owner shares their link: `https://bodegagent.vercel.app/pagar/0x...`
+2. Family member opens it, connects their wallet (MetaMask or MiniPay)
+3. Enters the USDm amount — sees a live breakdown of the payment and service fee
+4. Approves **two separate on-chain transactions**:
+   - **Tx 1** — `amount` USDm → bodega address
+   - **Tx 2** — `0.5% fee` USDm → platform address (`NEXT_PUBLIC_PLATFORM_ADDRESS`)
+5. Both transaction hashes are shown with Blockscout links
+
+> If `NEXT_PUBLIC_PLATFORM_ADDRESS` is empty, only Tx 1 is sent (no fee collected). If Tx 2 fails, Tx 1 already confirmed — the bodega always receives its payment.
+
+### Business model
+
+| Service | Traditional | BodegAgent |
 |---|---|---|
-| **MiniPay** | Se detecta via `window.ethereum.isMiniPay`. Auto-conecta al abrir la app. | Usuarios en Africa/LatAm con Opera Browser |
-| **MetaMask / injected** | `eth_requestAccounts` sobre `window.ethereum`. Aparece solo si hay wallet instalada. | Usuarios con wallet de navegador |
-| **Wallet temporal** | `generatePrivateKey()` + `privateKeyToAccount()` de viem, persiste en `localStorage`. | Demo, pruebas rápidas |
-
-> La wallet temporal es solo para demo. No deposites fondos reales — la clave privada vive en el navegador.
-
-Si el usuario está dentro de MiniPay, se muestra:
-- Un banner "Recarga USDm" con deeplink a `https://link.minipay.xyz/add_cash?tokens=USDm`
-- Un quick reply "Tasa MiniPay" que llama al método custom `miniPay_getExchangeRate`
-- Menú con link directo al saldo en MiniPay y a Blockscout
-
-La dirección conectada se inyecta automáticamente en el primer mensaje al agente para que pueda referenciarla.
+| Remittance fee | 5–8% | **0.5%** |
+| Settlement time | 1–3 days | ~5 seconds |
+| Intermediaries | 2–4 | 0 |
 
 ---
 
-## FX en vivo y routing entre DEXs
+## WhatsApp bot — Kapso
 
-### Tasa PEN/USDm (`lib/fx.ts`)
+The agent is available as a WhatsApp bot via [Kapso](https://kapso.com), meeting bodega owners on the channel they already use daily.
 
-```typescript
-import { getLivePenRate } from '@/lib/fx'
-const rate = await getLivePenRate() // USD → PEN desde open.er-api.com
-```
+### How it works
 
-- Fuente: `https://open.er-api.com/v6/latest/USD` (gratuito, sin API key)
-- Cache en memoria de 1 hora — Next.js `next: { revalidate: 3600 }`
-- Fallback a `PEN_TO_CUSD_RATE` del `.env` si la API no responde
-- Todos los tools (`send_cusd`, `create_invoice`, `check_pending_debts`, `remind_debtor`) usan esta tasa
+1. User sends a WhatsApp message to the business number
+2. Kapso delivers it to `POST /api/whatsapp`
+3. The webhook responds immediately with `{ ok: true }` (no timeout risk)
+4. Claude Haiku 4.5 processes the message with all 9 tools available
+5. The reply is sent back via `POST api.kapso.ai/meta/whatsapp/v24.0/{phoneNumberId}/messages`
 
-### Comparación de DEXs (`lib/dex-rates.ts`)
+Always uses **Claude Haiku** on WhatsApp for speed and cost efficiency (~4× cheaper than Sonnet).
 
-```typescript
-import { getBestDexRate } from '@/lib/dex-rates'
-const result = await getBestDexRate(100) // Cotiza 100 USDC → USDm
-```
+### Setup
 
-Dos fuentes en paralelo:
+1. Create an account at [kapso.com](https://kapso.com) and connect a WhatsApp number
+2. In the Kapso dashboard → Settings → Webhooks → set URL to:
+   ```
+   https://your-domain.vercel.app/api/whatsapp
+   ```
+3. Add to `.env.local`:
+   ```env
+   KAPSO_API_KEY=your_api_key
+   KAPSO_PHONE_NUMBER_ID=your_phone_number_id
+   ```
 
-**DefiLlama** (`coins.llama.fi`) — precio agregado:
-- Agrega precios de Mento, Uniswap, Curve y todos los pools de Celo
-- Disponible en mainnet y Sepolia
-- `USDC/USDm rate = usdc_price_usd / usdm_price_usd`
-
-**Uniswap V3 QuoterV2** — cotización on-chain:
-- `quoteExactInputSingle` con 100 USDC en fee tiers 500 (0.05%) y 3000 (0.3%)
-- Solo mainnet. En Sepolia retorna `available: false`
-- Cotización exacta incluyendo spread real del pool
-
-El resultado incluye cuál da más USDm y la diferencia en basis points.
+Conversation history (up to 5 exchanges) is kept in memory per phone number. For production persistence across cold starts, replace the in-memory `sessions` map with Vercel KV.
 
 ---
 
-## Detalles específicos de Celo
+## AI cost routing
 
-### Redes soportadas
+To reduce API costs, the chat endpoint selects the model based on message complexity:
 
-| Red | Chain ID | Explorer | Default |
+| Query type | Model | Approx. cost |
+|---|---|---|
+| Simple (balance, FX rate, reminders) | `claude-haiku-4-5-20251001` | ~$0.001/exchange |
+| Complex (payments, invoices, remittances, multi-turn) | `claude-sonnet-4-20250514` | ~$0.004/exchange |
+| WhatsApp (all messages) | `claude-haiku-4-5-20251001` | ~$0.001/message |
+
+Classification uses a regex of intent keywords (`cobra`, `factura`, `remesa`, `compare`, `0x...`, etc.) plus conversation length. This reduces average API cost by ~60% compared to always using Sonnet.
+
+---
+
+## Wallet — connection options
+
+When opening the chat, the user picks a connection method:
+
+| Option | How it works | When to use |
+|---|---|---|
+| **MiniPay** | Detected via `window.ethereum.isMiniPay`. Auto-connects on app open. | Users in Africa/LatAm on Opera Browser |
+| **MetaMask / injected** | `eth_requestAccounts` on `window.ethereum`. Only shown when a wallet is installed. | Users with a browser wallet |
+| **Temporary wallet** | `generatePrivateKey()` + `privateKeyToAccount()` from viem, persisted in `localStorage`. | Demo, quick testing |
+
+> The temporary wallet is for demo only. Do not deposit real funds — the private key lives in the browser.
+
+When the user is inside MiniPay:
+- An "Add USDm" banner appears with a deeplink to `https://link.minipay.xyz/add_cash?tokens=USDm`
+- A "MiniPay Rate" quick reply calls the custom `miniPay_getExchangeRate` method
+- The wallet badge dropdown links directly to the MiniPay balance view and Blockscout
+
+---
+
+## Live FX and DEX routing
+
+### PEN/USDm rate (`lib/fx.ts`)
+
+- Source: `https://open.er-api.com/v6/latest/USD` (free, no API key)
+- 1-hour in-memory cache
+- Falls back to `PEN_TO_CUSD_RATE` env var if the API is unavailable
+- All tools use this rate: `send_cusd`, `create_invoice`, `check_pending_debts`, `remind_debtor`, `register_fiado`
+
+### DEX comparison (`lib/dex-rates.ts`)
+
+Two sources queried in parallel:
+
+**DefiLlama** (`coins.llama.fi`) — aggregated price across Mento, Uniswap, Curve, and all Celo pools. Available on mainnet and Sepolia.
+
+**Uniswap V3 QuoterV2** — exact on-chain quote via `quoteExactInputSingle` across fee tiers 500 and 3000. Mainnet only.
+
+---
+
+## Celo-specific details
+
+### Supported networks
+
+| Network | Chain ID | Explorer | Default |
 |---|---|---|---|
 | **Celo Sepolia** | 11142220 | https://celo-sepolia.blockscout.com | ✓ |
 | Celo Mainnet | 42220 | https://celoscan.io | |
 
-### Contratos USDm
+### USDm contract addresses
 
-| Red | Dirección |
+| Network | Address |
 |---|---|
 | **Celo Sepolia** | `0xEF4d55D6dE8e8d73232827Cd1e9b2F2dBb45bC80` |
 | Mainnet | `0x765DE816845861e75A25fCA122bb6898B8B1282a` |
 
-> USDm (Mento Dollar) es el rebrand de cUSD. La dirección del token sirve también como adaptador `feeCurrency` para CIP-64 — no se necesita un adaptador separado.
+> USDm (Mento Dollar) is the rebrand of cUSD. The token address also serves as the `feeCurrency` adapter for CIP-64 — no separate adapter contract needed.
 
-### CIP-64 — gas en USDm
+### CIP-64 — gas in USDm
 
-Todas las transacciones incluyen `feeCurrency: usdmAddress`. La wallet del agente paga el gas en USDm y no necesita saldo CELO para operar. Esto es crítico para compatibilidad con MiniPay.
+All agent transactions include `feeCurrency: usdmAddress`. The agent wallet pays gas in USDm and does not require a CELO balance. This is critical for MiniPay compatibility.
 
 ```typescript
 await walletClient.writeContract({
@@ -246,9 +382,9 @@ await walletClient.writeContract({
 })
 ```
 
-### ERC-8004 — identidad del agente
+### ERC-8004 — agent identity
 
-`lib/agent-wallet.ts` incluye helpers para registrar el agente on-chain:
+`lib/agent-wallet.ts` includes helpers to register the agent on-chain:
 
 ```typescript
 import { registerAgentERC8004, buildAgentMetadata } from '@/lib/agent-wallet'
@@ -257,28 +393,26 @@ const metadata = buildAgentMetadata(agentAddress, 'https://bodegagent.vercel.app
 const txHash = await registerAgentERC8004('ipfs://QmYourCID...')
 ```
 
-El `agentURI` debe ser content-addressed (`ipfs://` o `data:`) para pasar los checks del validador ERC-8004.
-
-**Identity Registry:**
+**Identity Registry addresses:**
 - Mainnet: `0x8004A169FB4a3325136EB29fA0ceB6D2e539a432`
 - Celo Sepolia: `0x8004A818BFB912233c491871b3d84c89A494BD9e`
 
-### Límite de `eth_getLogs`
+### `eth_getLogs` limit
 
-El RPC público de Celo rechaza queries de logs de más de 50.000 bloques (~14 horas). Los tools usan ventanas de 43.200 bloques (~12 horas). Para historial más profundo usar la [Blockscout REST API](https://celo.blockscout.com/api-docs) — sin API key.
+The public Celo RPC rejects log queries spanning more than 50,000 blocks (~14 hours). All tools use 43,200-block windows (~12 hours). For deeper history, use the [Blockscout REST API](https://celo.blockscout.com/api-docs) — no API key required.
 
 ---
 
-## Deploy en Vercel
+## Deploy to Vercel
 
 ```bash
 vercel deploy
 ```
 
-Configura las variables de entorno en **Settings → Environment Variables**. `AGENT_PRIVATE_KEY` nunca debe tener prefijo `NEXT_PUBLIC_`.
+Set all environment variables under **Settings → Environment Variables**. `AGENT_PRIVATE_KEY` and `KAPSO_API_KEY` must never have the `NEXT_PUBLIC_` prefix.
 
 ---
 
-## Licencia
+## License
 
 MIT

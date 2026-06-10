@@ -159,11 +159,13 @@ export default function Dashboard() {
             </section>
 
             {/* Wallet address */}
-            <div className="border border-line rounded px-4 py-3 flex items-center justify-between">
-              <span className="text-[10px] uppercase tracking-widest text-muted font-mono">
+            <div className="border border-line rounded px-4 py-3 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+              <span className="flex-shrink-0 text-[10px] uppercase tracking-widest text-muted font-mono">
                 Wallet del agente
               </span>
-              <span className="font-mono text-xs text-sub">{data.balance.address}</span>
+              <span className="font-mono text-xs text-sub break-all sm:break-normal sm:truncate sm:max-w-xs">
+                {data.balance.address}
+              </span>
             </div>
 
             {/* Historial */}

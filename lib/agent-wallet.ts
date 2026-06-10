@@ -160,7 +160,7 @@ export async function getRecentTransfers(limit = 20) {
 
     // Use env-var rate as a stable reference for historical display.
     // Live rate would cause the same tx to show different PEN amounts over time.
-    const penRate = parseFloat(process.env.PEN_TO_CUSD_RATE ?? '3.7')
+    const penRate = parseFloat(process.env.PEN_TO_CUSD_RATE ?? '3.43')
     return all.map(log => {
       const args = log.args as { from: string; to: string; value: bigint }
       const amountUSDm = parseFloat(formatUnits(args.value, 18))
