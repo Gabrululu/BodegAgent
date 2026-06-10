@@ -57,6 +57,8 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   const body: KapsoPayload = await req.json().catch(() => ({}))
 
+  console.log('[kapso] event:', body.event, '| data keys:', Object.keys(body.data ?? {}))
+
   // Solo procesar mensajes recibidos
   if (body.event && body.event !== 'whatsapp.message.received') {
     return Response.json({ ok: true })
@@ -71,6 +73,8 @@ export async function POST(req: NextRequest) {
     : data.message
     ? [data.message]
     : []
+
+  console.log('[kapso] msgs count:', msgs.length, '| phoneNumberId:', phoneNumberId ? 'set' : 'MISSING')
 
   for (const msg of msgs) {
     if (msg.type !== 'text') continue
