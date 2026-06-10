@@ -1,14 +1,8 @@
 // WhatsApp bot via Kapso (https://kapso.com)
 //
-// Setup:
-//   1. Crea cuenta en kapso.com y obtén un número de WhatsApp
-//   2. En el dashboard de Kapso → Settings → Webhooks → apunta a:
-//      https://tu-dominio.vercel.app/api/whatsapp
-//   3. Añade las variables de entorno de abajo
-//
 // Env vars requeridas:
-//   KAPSO_API_KEY          — tu API key de Kapso
-//   KAPSO_PHONE_NUMBER_ID  — el phone_number_id de tu número en Kapso
+//   KAPSO_API_KEY          — API key de Kapso
+//   KAPSO_PHONE_NUMBER_ID  — phone_number_id del número en Kapso
 
 import { generateText, stepCountIs } from 'ai'
 import { anthropic } from '@ai-sdk/anthropic'
@@ -38,85 +32,81 @@ Puedes ayudar a:
 Fee de servicio: 0.5% sobre remesas. Cuando calcules cuánto llegará de una remesa, descuéntalo.
 Si la respuesta incluye un link o tx hash, compártelo completo.`
 
-// ── Tipos del webhook de Kapso ──
-type KapsoWebhook = {
-  message?: {
-    id: string
-    from: string
-    type: string
-    text?: { body: string }
-    kapso?: { content?: string }
-  }
-  conversation?: {
-    phone_number_id?: string
-  }
-  phone_number_id?: string
+// ── Payload Kapso v2: { event, data: { message, conversation } } ──
+type KapsoMessage = {
+  id: string
+  from: string
+  type: string
+  text?: { body: string }
+  kapso?: { content?: string }
 }
 
-// Meta webhook verification (GET) — required by Kapso / WhatsApp Cloud API
-export async function GET(req: NextRequest) {
-  const { searchParams } = new URL(req.url)
-  const mode = searchParams.get('hub.mode')
-  const token = searchParams.get('hub.verify_token')
-  const challenge = searchParams.get('hub.challenge')
-  const verifyToken = process.env.KAPSO_VERIFY_TOKEN ?? 'bodegagent'
-  if (mode === 'subscribe' && token === verifyToken) {
-    return new Response(challenge ?? '', { status: 200 })
+type KapsoPayload = {
+  event?: string
+  data?: {
+    message?: KapsoMessage
+    messages?: KapsoMessage[] // batched (buffering habilitado)
+    conversation?: { id?: string; phone_number?: string }
   }
-  return new Response('Forbidden', { status: 403 })
 }
 
 export async function POST(req: NextRequest) {
-  const body: KapsoWebhook = await req.json().catch(() => ({}))
+  const body: KapsoPayload = await req.json().catch(() => ({}))
 
-  const msg = body.message
-  if (!msg || msg.type !== 'text') {
-    return Response.json({ ok: true }) // ignorar mensajes no-texto (imágenes, etc.)
-  }
-
-  const text = msg.text?.body ?? msg.kapso?.content ?? ''
-  const from = msg.from                                          // número del usuario
-  const phoneNumberId =
-    body.phone_number_id ??
-    body.conversation?.phone_number_id ??
-    process.env.KAPSO_PHONE_NUMBER_ID ?? ''
-
-  if (!text || !from || !phoneNumberId) {
+  // Solo procesar mensajes recibidos
+  if (body.event && body.event !== 'whatsapp.message.received') {
     return Response.json({ ok: true })
   }
 
-  // ── Historial de conversación ──
-  const history = sessions.get(from) ?? []
-  history.push({ role: 'user', content: text })
-  if (history.length > MAX_TURNS) history.splice(0, 2)
+  const data = body.data ?? {}
+  const phoneNumberId = process.env.KAPSO_PHONE_NUMBER_ID ?? ''
 
-  try {
-    const { text: reply } = await generateText({
-      model: anthropic('claude-haiku-4-5-20251001'), // Haiku: velocidad + costo en WhatsApp
-      system: SYSTEM_PROMPT,
-      messages: history,
-      tools,
-      stopWhen: stepCountIs(4),
-    })
+  // Kapso puede entregar un mensaje individual o un batch (buffering)
+  const msgs: KapsoMessage[] = data.messages
+    ? data.messages
+    : data.message
+    ? [data.message]
+    : []
 
-    history.push({ role: 'assistant', content: reply })
-    sessions.set(from, history)
+  for (const msg of msgs) {
+    if (msg.type !== 'text') continue
 
-    // ── Enviar respuesta vía Kapso API ──
-    await sendWhatsApp(phoneNumberId, from, reply)
+    const text = msg.text?.body ?? msg.kapso?.content ?? ''
+    const from = msg.from
 
-    return Response.json({ ok: true })
-  } catch (err) {
-    console.error('[kapso/whatsapp]', err)
-    await sendWhatsApp(phoneNumberId, from, 'Hubo un error, intenta de nuevo en un momento.')
-    return Response.json({ ok: false }, { status: 500 })
+    if (!text || !from) continue
+
+    // ── Historial de conversación ──
+    const history = sessions.get(from) ?? []
+    history.push({ role: 'user', content: text })
+    if (history.length > MAX_TURNS) history.splice(0, 2)
+
+    try {
+      const { text: reply } = await generateText({
+        model: anthropic('claude-haiku-4-5-20251001'),
+        system: SYSTEM_PROMPT,
+        messages: history,
+        tools,
+        stopWhen: stepCountIs(4),
+      })
+
+      history.push({ role: 'assistant', content: reply })
+      sessions.set(from, history)
+
+      await sendWhatsApp(phoneNumberId, from, reply)
+    } catch (err) {
+      console.error('[kapso/whatsapp]', err)
+      await sendWhatsApp(phoneNumberId, from, 'Hubo un error, intenta de nuevo en un momento.')
+    }
   }
+
+  return Response.json({ ok: true })
 }
 
 async function sendWhatsApp(phoneNumberId: string, to: string, message: string) {
   const apiKey = process.env.KAPSO_API_KEY
-  if (!apiKey) {
-    console.warn('[kapso] KAPSO_API_KEY no configurada — mensaje no enviado')
+  if (!apiKey || !phoneNumberId) {
+    console.warn('[kapso] KAPSO_API_KEY o KAPSO_PHONE_NUMBER_ID no configurados')
     return
   }
 
