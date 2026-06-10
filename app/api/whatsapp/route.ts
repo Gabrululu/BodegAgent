@@ -50,6 +50,10 @@ type KapsoPayload = {
   }
 }
 
+export async function GET() {
+  return Response.json({ ok: true })
+}
+
 export async function POST(req: NextRequest) {
   const body: KapsoPayload = await req.json().catch(() => ({}))
 
