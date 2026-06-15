@@ -6,6 +6,8 @@ BodegAgent lets a bodega owner collect payments in USDm, track credit tabs, gene
 
 Built for the **Celo Onchain Agents Hackathon**.
 
+**Live:** [bodegagent.vercel.app](https://bodegagent.vercel.app) · **Network:** Celo Mainnet · **ERC-8004 agentId:** [9396](https://agentscan.info/agents/2276ac18-9082-4d59-a890-7fb797be6a6b)
+
 ---
 
 ## The problem it solves
@@ -53,7 +55,7 @@ Family member in USA/Spain          Bodega owner in Lima
 |---|---|
 | Framework | Next.js 16 — App Router |
 | AI | Vercel AI SDK v6 + Claude Sonnet 4 / Haiku 4.5 (cost routing) |
-| Blockchain | viem v2 — Celo Mainnet / **Celo Sepolia** |
+| Blockchain | viem v2 — **Celo Mainnet** (Sepolia supported for dev) |
 | Stablecoin | USDm (Mento Dollar) — 18 decimals |
 | Gas | CIP-64 `feeCurrency` — gas in USDm, no CELO needed |
 | DEX quotes | Uniswap V3 QuoterV2 on-chain (mainnet) |
@@ -92,6 +94,8 @@ components/
   QuickActions.tsx            ← Quick-action bar: Cobrar, Saldo, Fiado sheets
   TxHistory.tsx               ← Transaction history table
   DebtCard.tsx                ← Debtor card
+scripts/
+  register-erc8004.mjs        ← One-time ERC-8004 agent registration script
 ```
 
 ---
@@ -101,7 +105,7 @@ components/
 ### 1. Clone and install
 
 ```bash
-git clone https://github.com/your-username/BodegAgent.git
+git clone https://github.com/Gabrululu/BodegAgent.git
 cd BodegAgent
 pnpm install
 ```
@@ -119,8 +123,8 @@ ANTHROPIC_API_KEY=sk-ant-...
 # Agent private key — server-side only, never expose to the client
 AGENT_PRIVATE_KEY=abc123...
 
-# Network: "sepolia" (active testnet) | "mainnet"
-NEXT_PUBLIC_NETWORK=sepolia
+# Network: "mainnet" | "sepolia" (testnet)
+NEXT_PUBLIC_NETWORK=mainnet
 
 # Agent wallet public address (shown in chat header)
 NEXT_PUBLIC_AGENT_ADDRESS=0x...
@@ -138,13 +142,25 @@ KAPSO_PHONE_NUMBER_ID=
 PEN_TO_CUSD_RATE=3.43
 ```
 
-> **Security:** `AGENT_PRIVATE_KEY` is a real private key. Use a fresh wallet with testnet funds only. Never commit `.env.local`.
+> **Security:** `AGENT_PRIVATE_KEY` is a real private key. Use a dedicated wallet and never commit `.env.local`.
 
-### 3. Fund the agent wallet (testnet)
+### 3. Fund the agent wallet
 
-- Celo Sepolia faucet: https://faucet.celo.org/celo-sepolia
+The agent wallet needs USDm on Celo Mainnet to send payments (CIP-64 gas). Acquire USDm via [Mento](https://app.mento.org) or any Celo DEX. For development on Sepolia, use the [Celo Sepolia faucet](https://faucet.celo.org/celo-sepolia).
 
-### 4. Start development server
+### 4. Register the agent identity (ERC-8004)
+
+Run the one-time registration script to mint the agent's on-chain identity NFT:
+
+```bash
+node --env-file=.env.local scripts/register-erc8004.mjs
+```
+
+The script builds a `data:` URI metadata payload (no IPFS upload needed), calls the ERC-8004 Identity Registry, waits for the receipt, and prints the `agentId`. Save the agentId — it is used for hackathon submissions and agentscan ranking.
+
+**BodegAgent on Celo Mainnet:** agentId `9396` · [agentscan.info/agents/2276ac18-9082-4d59-a890-7fb797be6a6b](https://agentscan.info/agents/2276ac18-9082-4d59-a890-7fb797be6a6b)
+
+### 5. Start development server
 
 ```bash
 pnpm dev
@@ -356,15 +372,15 @@ Two sources queried in parallel:
 
 | Network | Chain ID | Explorer | Default |
 |---|---|---|---|
-| **Celo Sepolia** | 11142220 | https://celo-sepolia.blockscout.com | ✓ |
-| Celo Mainnet | 42220 | https://celoscan.io | |
+| **Celo Mainnet** | 42220 | https://celoscan.io | ✓ |
+| Celo Sepolia | 11142220 | https://celo-sepolia.blockscout.com | |
 
 ### USDm contract addresses
 
 | Network | Address |
 |---|---|
-| **Celo Sepolia** | `0xEF4d55D6dE8e8d73232827Cd1e9b2F2dBb45bC80` |
-| Mainnet | `0x765DE816845861e75A25fCA122bb6898B8B1282a` |
+| **Mainnet** | `0x765DE816845861e75A25fCA122bb6898B8B1282a` |
+| Celo Sepolia | `0xEF4d55D6dE8e8d73232827Cd1e9b2F2dBb45bC80` |
 
 > USDm (Mento Dollar) is the rebrand of cUSD. The token address also serves as the `feeCurrency` adapter for CIP-64 — no separate adapter contract needed.
 
@@ -384,18 +400,21 @@ await walletClient.writeContract({
 
 ### ERC-8004 — agent identity
 
-`lib/agent-wallet.ts` includes helpers to register the agent on-chain:
+`lib/agent-wallet.ts` exposes `registerAgentERC8004(uri)` and `buildAgentMetadata(address, url)`. The registration script encodes the metadata as a `data:application/json;base64` URI so no IPFS upload is required:
 
-```typescript
-import { registerAgentERC8004, buildAgentMetadata } from '@/lib/agent-wallet'
-
-const metadata = buildAgentMetadata(agentAddress, 'https://bodegagent.vercel.app')
-const txHash = await registerAgentERC8004('ipfs://QmYourCID...')
+```bash
+node --env-file=.env.local scripts/register-erc8004.mjs
 ```
+
+The script pays gas in native CELO and prints the `agentId` from the on-chain `Transfer` event once the transaction confirms.
 
 **Identity Registry addresses:**
 - Mainnet: `0x8004A169FB4a3325136EB29fA0ceB6D2e539a432`
 - Celo Sepolia: `0x8004A818BFB912233c491871b3d84c89A494BD9e`
+
+**BodegAgent registration:**
+- Mainnet agentId: `9396` · tx [`0x019afa...`](https://celoscan.io/tx/0x019afa798824a6e8084ae39e358c6fec4c64fc84e5a76c03fe09617e48a6d4b5)
+- [agentscan.info/agents/2276ac18-9082-4d59-a890-7fb797be6a6b](https://agentscan.info/agents/2276ac18-9082-4d59-a890-7fb797be6a6b)
 
 ### `eth_getLogs` limit
 
