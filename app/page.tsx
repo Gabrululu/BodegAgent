@@ -1,5 +1,13 @@
 import Link from 'next/link'
 
+const NETWORK = process.env.NEXT_PUBLIC_NETWORK ?? 'sepolia'
+const IS_MAINNET = NETWORK === 'mainnet'
+const CHAIN_ID   = IS_MAINNET ? '42220'    : '11142220'
+const USDM_SHORT = IS_MAINNET ? '0x765DE816…1282a' : '0xEF4d55D6…45bC80'
+const ERC8004    = IS_MAINNET ? '0x8004A169…4432'  : '0x8004A818…4BD9e'
+const NET_LABEL  = IS_MAINNET ? 'Celo Mainnet'     : 'Celo Sepolia'
+const EXPLORER   = IS_MAINNET ? 'https://celoscan.io' : 'https://celo-sepolia.blockscout.com'
+
 const FEATURES = [
   {
     n: '01',
@@ -319,10 +327,10 @@ export default function Home() {
           </p>
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
             {[
-              { label: 'Red activa',   value: 'Celo Sepolia'    },
-              { label: 'Chain ID',     value: '11142220'        },
-              { label: 'USDm',         value: '0xEF4d55D6…45bC80' },
-              { label: 'ERC-8004',     value: '0x8004A818…4BD9e' },
+              { label: 'Red activa',   value: NET_LABEL  },
+              { label: 'Chain ID',     value: CHAIN_ID   },
+              { label: 'USDm',         value: USDM_SHORT },
+              { label: 'ERC-8004',     value: ERC8004    },
             ].map(item => (
               <div key={item.label} className="border border-line px-4 py-3">
                 <p className="mb-1 text-[10px] uppercase tracking-widest text-muted">{item.label}</p>
@@ -376,20 +384,12 @@ export default function Home() {
               <Link href="/chat" className="transition-colors hover:text-text">Agente</Link>
               <Link href="/dashboard" className="transition-colors hover:text-text">Dashboard</Link>
               <a
-                href="https://celo-sepolia.blockscout.com"
+                href={EXPLORER}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="transition-colors hover:text-text"
               >
-                Blockscout ↗
-              </a>
-              <a
-                href="https://faucet.celo.org/celo-sepolia"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="transition-colors hover:text-text"
-              >
-                Faucet ↗
+                Explorer ↗
               </a>
             </nav>
           </div>
